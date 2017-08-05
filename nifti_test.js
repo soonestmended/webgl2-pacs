@@ -126,7 +126,7 @@ function launch() {
 
 var v3 = twgl.v3;
 var m4 = twgl.m4;
-var gl = twgl.getWebGLContext(document.getElementById("c").getContext("webgl2"));
+var gl = document.getElementById("c").getContext("webgl2");
 
 if (!gl) {
   alert("Web GL 2.0 not supported.");
