@@ -1,12 +1,14 @@
+#version 300 es
+
 precision highp float;
 
 uniform vec2 u_resolution;
 uniform vec2 u_wl;
 
-attribute vec4 a_position;
-attribute vec2 a_texcoord;
+in vec4 a_position;
+in vec2 a_texcoord;
 
-varying vec2 v_texcoord;
+out vec2 v_texcoord;
 
 void main() {
 	gl_Position = a_position;

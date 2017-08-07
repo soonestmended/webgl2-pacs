@@ -86,9 +86,9 @@ function readNifti(data) {
   return [niftiHeader, niftiImage];
 }
 
-var displayWindow = .01;
-var displayLevel = .505;
-var showMask = true;
+var displayWindow = 256;
+var displayLevel = 128;
+var showMask = false;
 
 function launch() {
   // called after all image files and shaders are loaded
@@ -103,19 +103,21 @@ function launch() {
   var maskHeaderImagePair = readNifti(maskNiftiData);
   study.addMaskFromNifti(0, maskHeaderImagePair[0], maskHeaderImagePair[1]);
 
-  texturesArray = study.to2DTextures();
-  maskTexturesArray = study.maskTo2DTextures();
+  texturesArray = study.to3DTextures();
+  maskTexturesArray = study.maskTo3DTextures();
 
   // create draw uniforms and bufferInfo
 
   drawUniforms = {
     u_resolution: [gl.canvas.width, gl.canvas.height],
-    u_tex: texturesArray[seriesIndex][sliceIndex],
+    u_tex: texturesArray[seriesIndex],
     u_wl: [displayWindow, displayLevel],
+    u_slice: sliceIndex / study.series[seriesIndex].depth,
+    u_maskAlpha: 0.0,
   };
 
   if (study.mask.has(seriesIndex) && showMask) {
-    drawUniforms.u_maskTex = maskTexturesArray[seriesIndex][sliceIndex];
+    drawUniforms.u_maskTex = maskTexturesArray[seriesIndex];
   }
   else {
     drawUniforms.u_maskTex = noMaskTexture;
@@ -132,58 +134,28 @@ if (!gl) {
   alert("Web GL 2.0 not supported.");
 }
 
-if (!gl.getExtension("OES_texture_float")) {
-  alert("Float textures not supported.");
-}
-
-if (!gl.getExtension("OES_element_index_uint")) {
-    alert("Unsigned integer indices not supported.");
-}
-
-//var texParticle = twgl.createTexture(gl, {
-//    src: "/code/webgl/particle.png"
-//}, function(err, tex, img) {checkLoaded();});
-
 var study = null;
 
 var seriesIndex = 0;
 var sliceIndex = 0;
-/*
-for (var i = 0; i < 32; i++) {
-  studyData.push(twgl.primitives.createAugmentedTypedArray(4, 512*512, Uint8Array));
-}
-
-// fill texture arrays with somewhat structured fake data
-
-for (var s = 0; s < 32; s++) {
-  var slice = studyData[s];
-  for (var i = 0; i < 512; i++) {
-    for (var j = 0; j < 512; j++) {
-      if (s % 4 == 0) {
-        slice.push([255, 0, 0, 255]);
-      }
-      else {
-        slice.push([0, 0, 255, 255]);
-      }
-    }
-  }   
-}
-
-*/
 
 var drawArrays = {
   position: [-1, -1, 0, 1, -1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1, 1, 0],
   texcoord: [0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0],
 }
 
-var clearPixel = twgl.primitives.createAugmentedTypedArray(4, 1);
-clearPixel.push([0.0, 0.0, 0.0, 0.0]);
+
 var noMaskTexture = twgl.createTexture(gl, {
+  target: gl.TEXTURE_3D,
   min: gl.NEAREST,
   mag: gl.NEAREST,
   width: 1,
   height: 1,
-  src: clearPixel,
+  depth: 1,
+  internalFormat: gl.R16I,
+  format: gl.RED_INTEGER,
+  type: gl.SHORT,
+  src: [0],
 });
 
 var drawBufferInfo = twgl.createBufferInfoFromArrays(gl, drawArrays);
@@ -191,14 +163,17 @@ var drawBufferInfo = twgl.createBufferInfoFromArrays(gl, drawArrays);
 function render(time) {
   time *= 0.0001;
 
-  drawUniforms.u_tex = texturesArray[seriesIndex][sliceIndex];
-  
+  drawUniforms.u_tex = texturesArray[seriesIndex];
+  drawUniforms.u_slice = sliceIndex / study.series[seriesIndex].depth;
+
 // apply mask, maybe.
   if (study.mask.has(seriesIndex) && showMask) {
-    drawUniforms.u_maskTex = maskTexturesArray[seriesIndex][sliceIndex];
+    drawUniforms.u_maskTex = maskTexturesArray[seriesIndex];
+    drawUniforms.u_maskAlpha = 1.0;
   }
   else {
     drawUniforms.u_maskTex = noMaskTexture;
+    drawUniforms.u_maskAlpha = 0.0;
   }
 
   drawUniforms.u_wl = [displayWindow, displayLevel];
@@ -217,7 +192,7 @@ function render(time) {
   gl.useProgram(programInfo.program);
   twgl.setBuffersAndAttributes(gl, programInfo, drawBufferInfo);
   twgl.setUniforms(programInfo, drawUniforms);
-  twgl.drawBufferInfo(gl, gl.TRIANGLES, drawBufferInfo);
+  twgl.drawBufferInfo(gl, drawBufferInfo, gl.TRIANGLES);
 
   requestAnimationFrame(render);
 }
@@ -298,8 +273,8 @@ function mapMouseToUnitPlane(sx, sy) {
         if (mouseInfo.buttonDown[0] == true) { // left button pressed
             var dx = mouseInfo.curPos.x - mouseInfo.lastPos.x;
             var dy = mouseInfo.curPos.y - mouseInfo.lastPos.y;
-            displayWindow += dx * .0001;
-            displayLevel += dy * .0001;
+            displayWindow += dx;
+            displayLevel += dy;
             console.log("w: " + displayWindow + "\tl: " + displayLevel);
         }
         event.preventDefault();

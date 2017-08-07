@@ -1,3 +1,15 @@
+function flatten(input) {
+  var ans = [];
+  var inputLength = input.length;
+  for (var i = 0; i < inputLength; ++i) {
+    var current = input[i];
+    var currentLength = current.length;
+    for (var j = 0; j < currentLength; ++j)
+      ans.push(current[j]);
+  }
+  return ans;
+}
+
 class Series {
   constructor(_w, _h, _d, _name, _images) {
     this.width = _w;
@@ -63,6 +75,30 @@ class Study {
     this.mask.set(seriesIndex, new Series(w, h, d, maskHeader.description, images));
   }
 
+  maskTo3DTextures() {
+    var texArray = [];
+    for (var i = 0; i < this.series.length; ++i) {
+      if (!this.mask.has(i)) {
+        texArray.push(null);
+        continue;
+      }
+      var s = this.mask.get(i);
+      var texData = flatten(s.images);
+      texArray.push(twgl.createTexture(gl, {
+        target: gl.TEXTURE_3D,
+        minMag: gl.NEAREST,
+        width: s.width,
+        height: s.height,
+        depth: s.depth,
+        internalFormat: gl.R16I,
+        format: gl.RED_INTEGER,
+        type: gl.SHORT,
+        src: texData,
+      }));
+    }
+    return texArray;
+  }
+
   maskTo2DTextures() {
     var texArray = [];
     for (var i = 0; i < this.series.length; ++i) {
@@ -90,6 +126,27 @@ class Study {
         }));
       }
       texArray.push(tex);
+    }
+    return texArray;
+  }
+
+
+
+  to3DTextures() {
+    var texArray = [];
+    for (let s of this.series) {
+      var texData = flatten(s.images);
+      texArray.push(twgl.createTexture(gl, {
+        target: gl.TEXTURE_3D,
+        minMag: gl.NEAREST,
+        width: s.width,
+        height: s.height,
+        depth: s.depth,
+        internalFormat: gl.R16I,
+        format: gl.RED_INTEGER,
+        type: gl.SHORT,
+        src: texData,
+      }));
     }
     return texArray;
   }
