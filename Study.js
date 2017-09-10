@@ -130,22 +130,26 @@ class Study {
     return texArray;
   }
 
-
-
   to3DTextures() {
     var texArray = [];
     for (let s of this.series) {
       var texData = flatten(s.images);
+      var texDataAsFloats = new Float32Array(texData.length);
+      for (var i = 0; i < texData.length; ++i) {
+        texDataAsFloats[i] = texData[i] /32768;
+      }
+      
       texArray.push(twgl.createTexture(gl, {
         target: gl.TEXTURE_3D,
-        minMag: gl.NEAREST,
+        min: gl.NEAREST,
+        mag: gl.LINEAR,
         width: s.width,
         height: s.height,
         depth: s.depth,
-        internalFormat: gl.R16I,
-        format: gl.RED_INTEGER,
-        type: gl.SHORT,
-        src: texData,
+        internalFormat: gl.R32F,
+        format: gl.RED,
+        type: gl.FLOAT,
+        src: texDataAsFloats,
       }));
     }
     return texArray;

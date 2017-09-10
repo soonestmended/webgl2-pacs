@@ -134,6 +134,10 @@ if (!gl) {
   alert("Web GL 2.0 not supported.");
 }
 
+if (!gl.getExtension('OES_texture_float_linear')) {
+  alert("Linear interpolation of float textures not supported.");
+}
+
 var study = null;
 
 var seriesIndex = 0;
@@ -144,7 +148,7 @@ var drawArrays = {
   texcoord: [0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0],
 }
 
-
+// Dummy 1x1x1 mask texture, transparent
 var noMaskTexture = twgl.createTexture(gl, {
   target: gl.TEXTURE_3D,
   min: gl.NEAREST,
@@ -165,7 +169,7 @@ function render(time) {
 
   drawUniforms.u_tex = texturesArray[seriesIndex];
   drawUniforms.u_slice = sliceIndex / study.series[seriesIndex].depth;
-
+  console.log(drawUniforms.u_slice);
 // apply mask, maybe.
   if (study.mask.has(seriesIndex) && showMask) {
     drawUniforms.u_maskTex = maskTexturesArray[seriesIndex];
@@ -176,7 +180,7 @@ function render(time) {
     drawUniforms.u_maskAlpha = 0.0;
   }
 
-  drawUniforms.u_wl = [displayWindow, displayLevel];
+  drawUniforms.u_wl = [displayWindow /32768, displayLevel/32768];
   
   // twgl.bindFramebufferInfo(gl, updateFBI);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -206,7 +210,7 @@ function checkLoaded() {
 var niftiData = null;
 var maskNiftiData = null;
 
-var stuffToLoad = 4; // shaders plus one texture above
+var stuffToLoad = 4; 
 loadURL("VS.glsl", function(xhttp) {VS = xhttp.responseText; checkLoaded();});
 loadURL("FS.glsl", function(xhttp) {FS = xhttp.responseText; checkLoaded();});
 loadFile("r_TCGA-30-1-FLAIR-1-M.nii.gz", function(result) {niftiData = result; checkLoaded();});
@@ -225,13 +229,13 @@ function mapMouseToUnitPlane(sx, sy) {
     function handleMouseWheel(event) {
         event = event || window.event;
         if (event.deltaY > 0) {
-            sliceIndex++;
+            sliceIndex+=1;
             if (sliceIndex == study.series[seriesIndex].depth) {
-              sliceIndex--;
+              sliceIndex-=1;
             }
         }
         else {
-            sliceIndex--;
+            sliceIndex-=1;
             if (sliceIndex == -1) {
               sliceIndex++;
             }
@@ -309,9 +313,7 @@ function mapMouseToUnitPlane(sx, sy) {
         mouseInfo.buttonDown[event.button] = false;
         console.log("Button " + event.button + " released.");
     
-        updateUniforms.u_clicked = -1.0;
-        updateUniforms.u_c1 = [1.0, 1.0, 1.0];
-        updateUniforms.u_c2 = [0.1, 1.0, 0.1];
+   
         //console.log(updateUniforms.center);
         event.preventDefault();
         if (event.stopPropagation) {

@@ -2,8 +2,9 @@
 precision highp float;
 precision highp int;
 precision highp isampler3D;
+precision highp sampler3D;
 
-uniform isampler3D u_tex;
+uniform sampler3D u_tex;
 uniform isampler3D u_maskTex;
 uniform float u_maskAlpha;
 uniform vec2 u_resolution;
@@ -15,7 +16,7 @@ out vec4 color;
 
 void main() {
 	vec3 uvw =  vec3(gl_FragCoord.xy/u_resolution, u_slice);
-    ivec4 rawData = texture(u_tex, uvw);
+    vec4 rawData = texture(u_tex, uvw);
     ivec4 maskData = texture(u_maskTex, uvw);
     float scale = 1.0 / u_wl.x;
     float offset = u_wl.y - (u_wl.x / 2.0);
