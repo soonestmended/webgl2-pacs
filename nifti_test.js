@@ -4,11 +4,7 @@ twgl.setDefaults({attribPrefix: "a_"});
 
 var programInfo, VS, FS;
 
-var mouseInfo = {
-    lastPos: {x: 0.0, y: 0.0},
-    curPos: {x: 0.0, y: 0.0},
-    buttonDown: [false, false, false],
-};
+
 
 function loadURL(url, cb) {
   var xhttp;
@@ -86,10 +82,7 @@ var displayWindow = 256;
 var displayLevel = 128;
 var showMask = false;
 
-let viewMain = null;
-let viewSag = null;
-let viewCor = null;
-
+let views = [];
 
 function launch() {
   // called after all image files and shaders are loaded
@@ -109,17 +102,17 @@ function launch() {
 
   // create 2D views
   let xf = m4.scaling([.5, .5, .5]);
-  viewMain = new View2D({xform: xf, study, displayWindow, displayLevel, width: 512, height: 512, x: 0, y: 0});
+  views.push(new View2D({xform: xf, study, displayWindow, displayLevel, width: 512, height: 512, x: 0, y: 0}));
   xf = m4.identity();
   m4.axisRotate(xf, [1, 0, 0], Math.PI/2.0, xf);
-  viewSag = new View2D({xform: xf, study, displayWindow, displayLevel, width: 256, height: 256, x: 512, y: 256});
+  views.push(new View2D({xform: xf, study, displayWindow, displayLevel, width: 256, height: 256, x: 512, y: 256}));
   xf = m4.identity();
   m4.axisRotate(xf, [0, 1, 0], Math.PI/-2.0, xf);
   let xf2 = m4.axisRotate(m4.identity(), [0, 0, 1], Math.PI/-2.0);
   m4.multiply(xf, xf2, xf);
   //m4.axisRotate(xf, [0, 0, 1], Math.PI/4.0, xf);
   //xf = m4.identity();
-  viewCor = new View2D({xform: xf, study, displayWindow, displayLevel, width: 256, height: 256, x: 512, y: 0});
+  views.push(new View2D({xform: xf, study, displayWindow, displayLevel, width: 256, height: 256, x: 512, y: 0}));
 
   //viewMain.setSeries(seriesIndex);
   //viewMain.setShowMask(false);
@@ -215,74 +208,32 @@ function render(time) {
   gl.enable (gl.BLEND);
   gl.blendFunc (gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-  // Draw main view
-  gl.viewport(viewMain.x, viewMain.y, viewMain.width, viewMain.height);
+  // Draw views
+  for (let view of views) {
+    gl.viewport(view.x, view.y, view.width, view.height);
 
-  gl.useProgram(programInfo.program);
-  twgl.setBuffersAndAttributes(gl, programInfo, drawBufferInfo);
-  
-  // set uniforms
-  drawUniforms.u_tex = texturesArray[viewMain.seriesIndex];
-  drawUniforms.u_viewportInfo = [viewMain.x, viewMain.y, viewMain.width, viewMain.height];
-  drawUniforms.u_voxelDim = viewMain.voxelDim;
-  drawUniforms.u_world2voxel = viewMain.getWorld2Voxel();
-  if (viewMain.showMask) {
-    drawUniforms.u_maskTex = maskTexturesArray[viewMain.seriesIndex];
-    drawUniforms.u_maskAlpha = 1.0;
+    gl.useProgram(programInfo.program);
+    twgl.setBuffersAndAttributes(gl, programInfo, drawBufferInfo);
+    
+    // set uniforms
+    drawUniforms.u_tex = texturesArray[view.seriesIndex];
+    drawUniforms.u_viewportInfo = [view.x, view.y, view.width, view.height];
+    drawUniforms.u_voxelDim = view.voxelDim;
+    drawUniforms.u_world2voxel = view.getWorld2Voxel();
+    if (view.showMask) {
+      drawUniforms.u_maskTex = maskTexturesArray[view.seriesIndex];
+      drawUniforms.u_maskAlpha = 1.0;
+    }
+    else {
+      drawUniforms.u_maskTex = noMaskTexture;
+      drawUniforms.u_maskAlpha = 0.0;
+    }
+    drawUniforms.u_wl = [view.displayWindow /32768, view.displayLevel/32768];
+
+    twgl.setUniforms(programInfo, drawUniforms);
+    twgl.drawBufferInfo(gl, drawBufferInfo, gl.TRIANGLES);
+
   }
-  else {
-    drawUniforms.u_maskTex = noMaskTexture;
-    drawUniforms.u_maskAlpha = 0.0;
-  }
-  drawUniforms.u_wl = [viewMain.displayWindow /32768, viewMain.displayLevel/32768];
-
- let test_vec = m4.transformPoint(drawUniforms.u_world2voxel, [-80, -80, 0]);
- let test_vec2 = m4.transformPoint(viewMain.voxel2world, [0, 0, 0]);
-
-  twgl.setUniforms(programInfo, drawUniforms);
-  twgl.drawBufferInfo(gl, drawBufferInfo, gl.TRIANGLES);
-
-  // Draw coronal view
-  gl.viewport(viewCor.x, viewCor.y, viewCor.width, viewCor.height);
-  //drawUniforms.u_xform = m4.axisRotate(m4.identity(), [1, 0, 0], Math.PI / -2.0);
-  //drawUniforms.u_xform = m4.axisRotate(drawUniforms.u_xform, [0, 0, 1], Math.PI / 2.0);
-  drawUniforms.u_tex = texturesArray[viewCor.seriesIndex];
-  drawUniforms.u_viewportInfo = [viewCor.x, viewCor.y, viewCor.width, viewCor.height];
-  drawUniforms.u_voxelDim = viewCor.voxelDim;
-  drawUniforms.u_world2voxel = viewCor.getWorld2Voxel();
-
-
-  if (viewCor.showMask) {
-    drawUniforms.u_maskTex = maskTexturesArray[viewCor.seriesIndex];
-    drawUniforms.u_maskAlpha = 1.0;
-  }
-  else {
-    drawUniforms.u_maskTex = noMaskTexture;
-    drawUniforms.u_maskAlpha = 0.0;
-  }
-  drawUniforms.u_wl = [viewCor.displayWindow /32768, viewCor.displayLevel/32768];
-  twgl.setUniforms(programInfo, drawUniforms);
-  twgl.drawBufferInfo(gl, drawBufferInfo, gl.TRIANGLES);
-
-  // Draw sagittal view
-  gl.viewport(viewSag.x, viewSag.y, viewSag.width, viewSag.height);
-  //drawUniforms.u_xform = m4.axisRotate(m4.identity(), [1, 0, 0], Math.PI / -2.0);
-  //drawUniforms.u_xform = m4.axisRotate(drawUniforms.u_xform, [0, 0, 1], Math.PI / 2.0);
-  drawUniforms.u_tex = texturesArray[viewSag.seriesIndex];
-  drawUniforms.u_viewportInfo = [viewSag.x, viewSag.y, viewSag.width, viewSag.height];
-  drawUniforms.u_voxelDim = viewSag.voxelDim;
-  drawUniforms.u_world2voxel = viewSag.getWorld2Voxel();
-  if (viewSag.showMask) {
-    drawUniforms.u_maskTex = maskTexturesArray[viewSag.seriesIndex];
-    drawUniforms.u_maskAlpha = 1.0;
-  }
-  else {
-    drawUniforms.u_maskTex = noMaskTexture;
-    drawUniforms.u_maskAlpha = 0.0;
-  }
-  drawUniforms.u_wl = [viewSag.displayWindow /32768, viewSag.displayLevel/32768];
-  twgl.setUniforms(programInfo, drawUniforms);
-  twgl.drawBufferInfo(gl, drawBufferInfo, gl.TRIANGLES);
 
   requestAnimationFrame(render);
 }
@@ -304,109 +255,7 @@ loadFile("mask_wholetumor_3d.nii.gz", function(result) {maskNiftiData = result; 
 
 // Event handlers below
 
-function mapMouseToUnitPlane(sx, sy) {
-    var rect = gl.canvas.getBoundingClientRect();
-    return [2.0*((sx-rect.left) / gl.canvas.width)-1.0, 2.0*((rect.top-sy)/ gl.canvas.height)+1.0];
-}
 
-var activeView = viewMain;
-
-function getActiveView(event) {
-  let ans = null;
-  if (event.clientX > 0 && event.clientX < 512) {
-    ans = viewMain;
-  }
-  else if (event.clientY < 256) {
-    ans = viewSag;
-  }
-  else {
-    ans = viewCor;
-  }
-  return ans;
-}
-
-function handleMouseWheel(event) {
-  event = event || window.event;
-  console.log("Wheel");
-  activeView = getActiveView(event);
-  if (event.deltaY > 0) {
-    activeView.scroll(3);
-  }
-  else {
-    activeView.scroll(-3);
-  }
-  console.log(activeView.xform[14]);
-  event.preventDefault();
-  event.stopPropagation();
-}
-
-function handleMouseMove(event) {
-  var dot, eventDoc, doc, body, pageX, pageY;
-
-  event = event || window.event; // IE-ism
-  activeView = getActiveView(event);
-  // If pageX/Y aren't available and clientX/Y are,
-  // calculate pageX/Y - logic taken from jQuery.
-  // (This is to support old IE)
-  if (event.pageX == null && event.clientX != null) {
-      eventDoc = (event.target && event.target.ownerDocument) || document;
-      doc = eventDoc.documentElement;
-      body = eventDoc.body;
-
-      event.pageX = event.clientX +
-        (doc && doc.scrollLeft || body && body.scrollLeft || 0) -
-        (doc && doc.clientLeft || body && body.clientLeft || 0);
-      event.pageY = event.clientY +
-        (doc && doc.scrollTop  || body && body.scrollTop  || 0) -
-        (doc && doc.clientTop  || body && body.clientTop  || 0 );
-  }
-
-  // Use event.pageX / event.pageY here
-  mouseInfo.lastPos.x = mouseInfo.curPos.x;
-  mouseInfo.lastPos.y = mouseInfo.curPos.y;
-  mouseInfo.curPos.x = event.clientX;
-  mouseInfo.curPos.y = event.clientY;
-  if (mouseInfo.buttonDown[0] == true) { // left button pressed
-      var dx = mouseInfo.curPos.x - mouseInfo.lastPos.x;
-      var dy = mouseInfo.curPos.y - mouseInfo.lastPos.y;
-      activeView.displayWindow += dx;
-      activeView.displayLevel += dy;
-      console.log("w: " + activeView.displayWindow + "\tl: " + activeView.displayLevel);
-  }
-  event.preventDefault();
-  event.stopPropagation();
-  //console.log(mousePosition);
-}
-
-function handleMouseDown(event) {
-  event = event || window.event; // IE-ism
-  activeView = getActiveView(event);
-  mouseInfo.buttonDown[event.button] = true;
-  console.log("Button " + event.button + " pressed.");
-  if (event.button == 2) {
-    activeView.showMask = !activeView.showMask;
-  }
-  event.preventDefault();
-  event.stopPropagation();
-  //console.log(updateUniforms.center);
-}
-
-function handleMouseUp(event) {
-  event = event || window.event; // IE-ism
-
-  mouseInfo.buttonDown[event.button] = false;
-  console.log("Button " + event.button + " released.");
-
-
-  //console.log(updateUniforms.center);
-  event.preventDefault();
-  if (event.stopPropagation) {
-      event.stopPropagation();
-  }
-  else {
-      event.cancelBubble = true;
-  }
-}
 
 // mouse wheel
 (function() {

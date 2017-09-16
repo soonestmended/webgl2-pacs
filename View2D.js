@@ -16,28 +16,19 @@ class View2D {
 		this.x = x;
 		this.y = y;
 		this.xform = xform.slice(); // view transformation applied after world2origin
-		let s = this.study.series[seriesIndex];
-		this.world2origin = s.world2voxel;
-		let xf = m4.multiply(this.world2origin, this.xform);
-		this.voxel2world = m4.inverse(xf);
-		this.voxelDim = [s.width, s.height, s.depth];
-	}
-
-	// sets view transformation to xform. Then updates world2voxel and voxel2world
-	setTransform(xform) {
-		this.xform = xform;
-		let xf = m4.multiply(this.world2origin, this.xform);
-		this.voxel2world = m4.inverse(xf);
+		
+		this.setSeriesIndex(seriesIndex);
+		
 	}
 
 	getWorld2Voxel() {
-		let xf = m4.multiply(this.world2origin, this.xform);
+		let xf = m4.multiply(this.world2voxel, this.xform);
 		return xf;
 	}
 
-	scroll(amt) {
+	translate(dx, dy, dz) {
 		//let tv = m4.transformDirection(this.voxel2world, [0, 0, 1.0]);
-		let tv = [0, 0, amt];
+		let tv = [dx, dy, dz];
 
 		let oldTrans = this.xform.slice(); // save old transformation
 
@@ -54,17 +45,26 @@ class View2D {
 			this.xform = oldTrans;
 			return;
 		}
-		let xf = m4.multiply(this.world2origin, this.xform);
+		let xf = m4.multiply(this.world2voxel, this.xform);
 		this.voxel2world = m4.inverse(xf);
 		
 	}
 
 	setSeriesIndex(ind) {
 		this.seriesIndex = ind;
+		let s = this.study.series[ind];
+		this.world2voxel = s.world2voxel;
+		let xf = m4.multiply(this.world2voxel, this.xform);
+		this.voxel2world = m4.inverse(xf);
+		this.voxelDim = [s.width, s.height, s.depth];
 	}
 
 	setShowMask(yn) {
 		this.showMask = yn;
+	}
+	viewportContains(x, y) {
+		if (x >= this.x && x < this.x + this.width && y >= this.y && y < this.y + this.height) return true;
+		return false;
 	}
 
 }
