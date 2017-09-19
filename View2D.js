@@ -16,7 +16,8 @@ class View2D {
 		this.x = x;
 		this.y = y;
 		this.xform = xform.slice(); // view transformation applied after world2origin
-		
+		this.dxdy = [0, 0];
+		this.angle = 0;
 		this.setSeriesIndex(seriesIndex);
 		
 	}
@@ -27,24 +28,26 @@ class View2D {
 	}
 
 	translate(dx, dy, dz) {
+		this.dxdy[0] += dx;
+		this.dxdy[1] += dy;
 		//let tv = m4.transformDirection(this.voxel2world, [0, 0, 1.0]);
 		let tv = [dx, dy, dz];
 
-		let oldTrans = this.xform.slice(); // save old transformation
+		//let oldTrans = this.xform.slice(); // save old transformation
 
 		let tm = m4.translation(tv); // make translation vector
-		m4.multiply(oldTrans, tm, this.xform); // add to this view's transformation
+		m4.multiply(this.xform, tm, this.xform); // add to this view's transformation
 
-		let p = m4.transformPoint(this.getWorld2Voxel(), [0, 0, 0]);
+		//let p = m4.transformPoint(this.getWorld2Voxel(), [0, 0, 0]);
 		//m4.transformPoint(this.xform, p, p);
-		let s = this.study.series[seriesIndex];
-		console.log(this.xform);
-		console.log(p);
-		if (p[0] < 0 || p[1] < 0 || p[2] < 0 || p[0] > s.width || p[1] > s.height || p[2] > s.depth) {
+		//let s = this.study.series[seriesIndex];
+		//console.log(this.xform);
+		//console.log(p);
+		//if (p[0] < 0 || p[1] < 0 || p[2] < 0 || p[0] > s.width || p[1] > s.height || p[2] > s.depth) {
 			//m4.setTranslation(this.world2voxel, oldTrans, this.world2voxel);
-			this.xform = oldTrans;
-			return;
-		}
+		//	this.xform = oldTrans;
+		//	return;
+		//}
 		let xf = m4.multiply(this.world2voxel, this.xform);
 		this.voxel2world = m4.inverse(xf);
 		

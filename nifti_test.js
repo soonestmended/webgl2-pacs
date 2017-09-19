@@ -2,7 +2,7 @@
 "use strict";
 twgl.setDefaults({attribPrefix: "a_"});
 
-var programInfo, VS, FS;
+var programInfo, VS, FS, VS_rotate, FS_rotate, programInfo_rotate;
 
 
 
@@ -87,6 +87,7 @@ let views = [];
 function launch() {
   // called after all image files and shaders are loaded
   programInfo = twgl.createProgramInfo(gl, [VS, FS]);
+  programInfo_rotate = twgl.createProgramInfo(gl, [VS_rotate, FS_rotate]);
   var headerImagePair = readNifti(niftiData);
   var argmap = new Map();
   argmap.set('type', 'nifti');
@@ -158,6 +159,10 @@ var drawArrays = {
   texcoord: [0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0],
 }
 
+var drawArrays_rotate_X = {
+  position: [-1, 0, 0, 1, 0, 0], 
+}
+
 // Dummy 1x1x1 mask texture, transparent
 var noMaskTexture = twgl.createTexture(gl, {
   target: gl.TEXTURE_3D,
@@ -173,6 +178,7 @@ var noMaskTexture = twgl.createTexture(gl, {
 });
 
 var drawBufferInfo = twgl.createBufferInfoFromArrays(gl, drawArrays);
+var drawBufferInfo_rotate_X = twgl.createBufferInfoFromArrays(gl, drawArrays_rotate_X)
 
 function render(time) {
   time *= 0.0001;
@@ -233,6 +239,19 @@ function render(time) {
     twgl.setUniforms(programInfo, drawUniforms);
     twgl.drawBufferInfo(gl, drawBufferInfo, gl.TRIANGLES);
 
+
+    gl.useProgram(programInfo_rotate.program);
+    twgl.setBuffersAndAttributes(gl, programInfo_rotate, drawBufferInfo_rotate_X);
+    let ixf = m4.inverse(view.xform);
+    let drawUniforms_rotate = {
+      u_dxdy: view.dxdy,
+      u_viewportInfo: [view.x, view.y, view.width, view.height],
+    };
+    twgl.setUniforms(programInfo_rotate, drawUniforms_rotate);
+
+    twgl.drawBufferInfo(gl, drawBufferInfo_rotate_X, gl.LINES);
+    
+
   }
 
   requestAnimationFrame(render);
@@ -247,9 +266,11 @@ function checkLoaded() {
 var niftiData = null;
 var maskNiftiData = null;
 
-var stuffToLoad = 4; 
-loadURL("VS.glsl", function(xhttp) {VS = xhttp.responseText; checkLoaded();});
-loadURL("FS.glsl", function(xhttp) {FS = xhttp.responseText; checkLoaded();});
+var stuffToLoad = 6; 
+loadURL("VS_main.glsl", function(xhttp) {VS = xhttp.responseText; checkLoaded();});
+loadURL("FS_main.glsl", function(xhttp) {FS = xhttp.responseText; checkLoaded();});
+loadURL("VS_rotate.glsl", function(xhttp) {VS_rotate = xhttp.responseText; checkLoaded();});
+loadURL("FS_rotate.glsl", function(xhttp) {FS_rotate = xhttp.responseText; checkLoaded();});
 loadFile("r_TCGA-30-1-FLAIR-1-M.nii.gz", function(result) {niftiData = result; checkLoaded();});
 loadFile("mask_wholetumor_3d.nii.gz", function(result) {maskNiftiData = result; checkLoaded();});
 
