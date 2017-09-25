@@ -11,9 +11,10 @@ var mouseInfo = {
     buttonDown: [false, false, false],
 };
 
-function getActiveView(event) {
+function getActiveView(xy) {
+  console.log("x: " + xy[0] + "  y: " + xy[1]);
   for (let view of views) {
-    if (view.viewportContains(event.clientX, gl.canvas.height - event.clientY)) {
+    if (view.viewportContains(xy[0], xy[1])) {
       return view;
     }
   }
@@ -23,17 +24,38 @@ function getActiveView(event) {
 function handleMouseWheel(event) {
   event = event || window.event;
   console.log("Wheel");
-  activeView = getActiveView(event);
+  activeView = getActiveView(event2canvas(event));
+  let dz = 1;
   if (event.deltaY > 0) {
-    activeView.translate(0, 0, 3);
+    dz = -1;
   }
-  else {
-    activeView.translate(0, 0, -3);
+
+  let tv = v3.mulScalar(activeView.normal, dz); 
+  v3.add(center, tv, center);
+  for (let view of views) {
+    view.updateCrosshairPosition(center);
+    
   }
-  console.log(activeView.xform[14]);
   event.preventDefault();
   event.stopPropagation();
 }
+
+function event2canvas(e) {
+  return client2canvas(e.clientX, e.clientY);
+}
+
+function client2canvas(x, y) {
+  let rect = gl.canvas.getBoundingClientRect();
+  let localX = x - rect.left;
+  let localY = gl.canvas.height - (y - rect.top);
+  return [localX, localY];
+}
+
+  let MODE_MOVE = 0;
+  let MODE_ROTATE = 1;
+  let MODE_DEFAULT = 2;
+  let mode = MODE_DEFAULT;
+  // need to deal with not changing modes if button stays held down.
 
 function handleMouseMove(event) {
   var dot, eventDoc, doc, body, pageX, pageY;
@@ -62,16 +84,81 @@ function handleMouseMove(event) {
   mouseInfo.curPos.x = event.clientX;
   mouseInfo.curPos.y = event.clientY;
 
-  if (mouseInfo.buttonDown[0] == true && mouseInfo.buttonDown[1] == false && mouseInfo.buttonDown[2] == false) { // left button pressed
-      var dx = mouseInfo.curPos.x - mouseInfo.lastPos.x;
-      var dy = mouseInfo.curPos.y - mouseInfo.lastPos.y;
-      activeView.translate(-dx, dy, 0);
+  let localXY = event2canvas(event);
+
+  //set cursor
+  let overNow = getActiveView(localXY);
+  let rect = gl.canvas.getBoundingClientRect();
+  
+  
+
+    var dx = mouseInfo.curPos.x - mouseInfo.lastPos.x;
+    var dy = mouseInfo.curPos.y - mouseInfo.lastPos.y;
+
+  if (mouseInfo.buttonDown[0] == mouseInfo.buttonDown[1] == mouseInfo.buttonDown[2] == false) {
+    if (overNow != null && overNow.overMoveCrosshair(localXY[0], localXY[1])) {
+      document.body.style.cursor = "move";
+      mode = MODE_MOVE;
+    }
+    else if (overNow != null && overNow.overRotateCrosshair(localXY[0], localXY[1])) {
+      document.body.style.cursor = "pointer";
+      mode = MODE_ROTATE;
+    }
+
+    else {
+      document.body.style.cursor = "default";
+      mode = MODE_DEFAULT;
+    }
+  }
+
+  else if (mouseInfo.buttonDown[0] == true && mouseInfo.buttonDown[1] == false && mouseInfo.buttonDown[2] == false) { // left button pressed
+      if (mode == MODE_MOVE) {
+        
+        let tv = v3.add(v3.mulScalar(activeView.U, dx * activeView.scale), v3.mulScalar(activeView.V, -dy * activeView.scale)); // crosshair translation in world coordinates
+        v3.add(center, tv, center);
+        for (let view of views) {
+          view.updateCrosshairPosition(center);
+          
+        }
+
+      }
+
+      else if (mode == MODE_ROTATE) {
+        let dtheta = activeView.rotateCrosshair(localXY, client2canvas(mouseInfo.lastPos.x, mouseInfo.lastPos.y));
+        for (let view of views) {
+          if (view != activeView) {
+            // rotate view.U and view.V dtheta around activeView.normal
+            let rxf = m4.axisRotation(activeView.normal, -dtheta);
+            m4.transformNormal(rxf, view.normal, view.normal);
+            m4.transformDirection(rxf, view.U, view.U);
+            m4.transformDirection(rxf, view.V, view.V);
+            view.updateCrosshairPosition(center);
+          }
+        }
+      }
+
+
+
   }
   else if (mouseInfo.buttonDown[0] == false && mouseInfo.buttonDown[1] == false && mouseInfo.buttonDown[2] == true) {
-      activeView.displayWindow += dx;
-      activeView.displayLevel += dy;
-      console.log("w: " + activeView.displayWindow + "\tl: " + activeView.displayLevel);
+    activeView.displayWindow += dx;
+    activeView.displayLevel += dy;
+    console.log("w: " + activeView.displayWindow + "\tl: " + activeView.displayLevel);
   }
+
+  else if (mouseInfo.buttonDown[0] == false && mouseInfo.buttonDown[1] == true && mouseInfo.buttonDown[2] == false) {
+    // clicked and dragged with middle button
+    if (dy < 0) {
+      activeView.scale /= 1.1;
+    } 
+    else {
+      activeView.scale *= 1.1;
+    }
+    for (view of views) {
+      view.updateCrosshairPosition(center);
+    }
+  }
+
   event.preventDefault();
   event.stopPropagation();
   //console.log(mousePosition);
@@ -79,7 +166,7 @@ function handleMouseMove(event) {
 
 function handleMouseDown(event) {
   event = event || window.event; // IE-ism
-  activeView = getActiveView(event);
+  activeView = getActiveView(event2canvas(event));
   mouseInfo.buttonDown[event.button] = true;
   console.log("Button " + event.button + " pressed.");
   if (event.button == 2) {

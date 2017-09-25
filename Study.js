@@ -222,7 +222,7 @@ class Study {
       
       texArray.push(twgl.createTexture(gl, {
         target: gl.TEXTURE_3D,
-        min: gl.NEAREST,
+        min: gl.LINEAR,
         mag: gl.LINEAR,
         width: s.width,
         height: s.height,

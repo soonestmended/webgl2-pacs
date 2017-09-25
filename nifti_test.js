@@ -102,18 +102,9 @@ function launch() {
   maskTexturesArray = study.maskTo3DTextures();
 
   // create 2D views
-  let xf = m4.scaling([.5, .5, .5]);
-  views.push(new View2D({xform: xf, study, displayWindow, displayLevel, width: 512, height: 512, x: 0, y: 0}));
-  xf = m4.identity();
-  m4.axisRotate(xf, [1, 0, 0], Math.PI/2.0, xf);
-  views.push(new View2D({xform: xf, study, displayWindow, displayLevel, width: 256, height: 256, x: 512, y: 256}));
-  xf = m4.identity();
-  m4.axisRotate(xf, [0, 1, 0], Math.PI/-2.0, xf);
-  let xf2 = m4.axisRotate(m4.identity(), [0, 0, 1], Math.PI/-2.0);
-  m4.multiply(xf, xf2, xf);
-  //m4.axisRotate(xf, [0, 0, 1], Math.PI/4.0, xf);
-  //xf = m4.identity();
-  views.push(new View2D({xform: xf, study, displayWindow, displayLevel, width: 256, height: 256, x: 512, y: 0}));
+  views.push(new View2D({scale: .5, xColor: [0, 1, 0, 1], yColor: [1, 0, 0, 1], normal: [0, 0, 1], U: [1, 0, 0], V: [0, 1, 0], study, displayWindow, displayLevel, width: 400, height: 400, x: 0, y: 0}));
+  views.push(new View2D({xColor: [0, 0, 1, 1], yColor: [1, 0, 0, 1], normal: [0, 1, 0], U: [1, 0, 0], V: [0, 0, 1], study, displayWindow, displayLevel, width: 400, height: 400, x: 400, y: 400}));
+  views.push(new View2D({xColor: [0, 0, 1, 1], yColor: [0, 1, 0, 1], normal: [1, 0, 0], U: [0, 1, 0], V: [0, 0, 1], study, displayWindow, displayLevel, width: 400, height: 400, x: 400, y: 0}));
 
   //viewMain.setSeries(seriesIndex);
   //viewMain.setShowMask(false);
@@ -159,9 +150,13 @@ var drawArrays = {
   texcoord: [0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0],
 }
 
-var drawArrays_rotate_X = {
+var drawArrays_crosshair_X = {
   position: [-1, 0, 0, 1, 0, 0], 
 }
+
+var drawArrays_crosshair_Y = {
+  position: [0, -1, 0, 0, 1, 0],
+} 
 
 // Dummy 1x1x1 mask texture, transparent
 var noMaskTexture = twgl.createTexture(gl, {
@@ -178,7 +173,11 @@ var noMaskTexture = twgl.createTexture(gl, {
 });
 
 var drawBufferInfo = twgl.createBufferInfoFromArrays(gl, drawArrays);
-var drawBufferInfo_rotate_X = twgl.createBufferInfoFromArrays(gl, drawArrays_rotate_X)
+var drawBufferInfo_crosshair_X = twgl.createBufferInfoFromArrays(gl, drawArrays_crosshair_X);
+var drawBufferInfo_crosshair_Y = twgl.createBufferInfoFromArrays(gl, drawArrays_crosshair_Y);
+
+var mainXform = m4.identity();
+var center = [0, 0, 0];
 
 function render(time) {
   time *= 0.0001;
@@ -225,7 +224,18 @@ function render(time) {
     drawUniforms.u_tex = texturesArray[view.seriesIndex];
     drawUniforms.u_viewportInfo = [view.x, view.y, view.width, view.height];
     drawUniforms.u_voxelDim = view.voxelDim;
-    drawUniforms.u_world2voxel = view.getWorld2Voxel();
+//    let w2v = m4.multiply(view.world2voxel, mainXform);
+//    drawUniforms.u_world2voxel = m4.multiply(w2v, view.xform);
+    drawUniforms.u_world2voxel = view.world2voxel;
+    drawUniforms.u_center = center;
+    drawUniforms.u_normal = view.normal;
+    drawUniforms.u_U = view.U;
+    drawUniforms.u_V = view.V;
+    drawUniforms.u_d = view.d;
+    drawUniforms.u_scale = view.scale;
+    drawUniforms.u_correctionXform = view.correctionXform;
+
+        // Need to re-work exactly how we get the slice.
     if (view.showMask) {
       drawUniforms.u_maskTex = maskTexturesArray[view.seriesIndex];
       drawUniforms.u_maskAlpha = 1.0;
@@ -239,18 +249,29 @@ function render(time) {
     twgl.setUniforms(programInfo, drawUniforms);
     twgl.drawBufferInfo(gl, drawBufferInfo, gl.TRIANGLES);
 
+    // hard code the three views with attendant colors
 
     gl.useProgram(programInfo_rotate.program);
-    twgl.setBuffersAndAttributes(gl, programInfo_rotate, drawBufferInfo_rotate_X);
-    let ixf = m4.inverse(view.xform);
-    let drawUniforms_rotate = {
-      u_dxdy: view.dxdy,
-      u_viewportInfo: [view.x, view.y, view.width, view.height],
-    };
-    twgl.setUniforms(programInfo_rotate, drawUniforms_rotate);
+    twgl.setBuffersAndAttributes(gl, programInfo_rotate, drawBufferInfo_crosshair_X);
+    //let xf = m4.multiply(mainXform, view.xform);
 
-    twgl.drawBufferInfo(gl, drawBufferInfo_rotate_X, gl.LINES);
-    
+    let mul = 1;
+    if (view.angle >= 0) mul = -1;
+
+    let drawUniforms_crosshair = {
+      u_dxdy: view.dxdy,
+      u_cs: [mul*Math.cos(-view.angle), mul*Math.sin(-view.angle)],
+      u_viewportInfo: [view.x, view.y, view.width, view.height],
+      u_lineColor: view.xColor,
+    };
+
+    twgl.setUniforms(programInfo_rotate, drawUniforms_crosshair);
+    twgl.drawBufferInfo(gl, drawBufferInfo_crosshair_X, gl.LINES);
+
+    twgl.setBuffersAndAttributes(gl, programInfo_rotate, drawBufferInfo_crosshair_Y);
+    drawUniforms_crosshair.u_lineColor = view.yColor;
+    twgl.setUniforms(programInfo_rotate, drawUniforms_crosshair);
+    twgl.drawBufferInfo(gl, drawBufferInfo_crosshair_Y, gl.LINES);
 
   }
 
