@@ -228,12 +228,12 @@ function render(time) {
 //    drawUniforms.u_world2voxel = m4.multiply(w2v, view.xform);
     drawUniforms.u_world2voxel = view.world2voxel;
     drawUniforms.u_center = center;
-    drawUniforms.u_normal = view.normal;
-    drawUniforms.u_U = view.U;
-    drawUniforms.u_V = view.V;
-    drawUniforms.u_d = view.d;
-    drawUniforms.u_scale = view.scale;
-    drawUniforms.u_correctionXform = view.correctionXform;
+    drawUniforms.u_normal = view.currentNormal;
+    drawUniforms.u_U = view.currentU;
+    drawUniforms.u_V = view.currentV;
+    //drawUniforms.u_d = view.d;
+    drawUniforms.u_scale = view.currentScale;
+    //drawUniforms.u_correctionXform = view.correctionXform;
 
         // Need to re-work exactly how we get the slice.
     if (view.showMask) {
@@ -260,7 +260,7 @@ function render(time) {
 
     let drawUniforms_crosshair = {
       u_dxdy: view.dxdy,
-      u_cs: [mul*Math.cos(-view.angle), mul*Math.sin(-view.angle)],
+      u_cs: [mul*Math.cos(-view.chAngle), mul*Math.sin(-view.chAngle)],
       u_viewportInfo: [view.x, view.y, view.width, view.height],
       u_lineColor: view.xColor,
     };

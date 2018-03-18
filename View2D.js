@@ -18,13 +18,17 @@ class View2D {
 		this.xColor = xColor;
 		this.yColor = yColor;
 		this.dxdy = [0, 0];
-		this.angle = 0;
+		this.chAngle = 0;
 		this.setSeriesIndex(seriesIndex);
 		this.normal = normal;
 		this.U = U;
 		this.V = V;
+		this.currentNormal = normal.slice();
+		this.currentU = U.slice();
+		this.currentV = V.slice();
 		this.d = 0;
 		this.scale = scale;
+		this.currentScale = scale;
 	}
 
 	translateCrosshair(dx, dy) {
@@ -42,19 +46,43 @@ class View2D {
 	rotateCrosshair(p1, p2) {
 		let dtheta = this.angleBetween(this.ch2origin(p1), this.ch2origin(p2));
 		//console.log("dtheta: " + dtheta);
-		this.angle += dtheta;
+		this.chAngle += dtheta;
 		return dtheta;
+	}
+
+	rotateImage(axis, angle) {
+	    let rxf = m4.axisRotation(axis, -angle);
+	    m4.transformNormal(rxf, this.currentNormal, this.currentNormal);
+	    m4.transformDirection(rxf, this.currentU, this.currentU);
+	    m4.transformDirection(rxf, this.currentV, this.currentV);
 	}
 
 	projectIntoPlane(c) {
 		let ans = [];
-		ans[0] = -v3.dot(c, this.U) / this.scale;
-		ans[1] = -v3.dot(c, this.V) / this.scale;
+		ans[0] = -v3.dot(c, this.currentU) / this.currentScale;
+		ans[1] = -v3.dot(c, this.currentV) / this.currentScale;
 		return ans;
 	}
 
 	updateCrosshairPosition(c) {
 		this.dxdy = this.projectIntoPlane(c);
+	}
+
+	reset() {
+		this.resetRotation();
+		this.resetScale();
+		this.updateCrosshairPosition([0,0,0]);
+	}
+
+	resetRotation() {
+		this.chAngle = 0;
+		this.currentU = this.U.slice();
+		this.currentV = this.V.slice();
+		this.currentNormal = this.normal.slice();
+	}
+
+	resetScale() {
+		this.currentScale = this.scale;
 	}
 
 	scroll(dz) {
@@ -98,11 +126,11 @@ class View2D {
 		let v = this.ch2origin([x, y]);
 
 		// now rotate by angle
-		let cs = Math.cos(this.angle);
-		let sn = Math.sin(this.angle);
+		let cs = Math.cos(this.chAngle);
+		let sn = Math.sin(this.chAngle);
 
-		cs = (this.angle >= 0) ? cs : -cs;
-		sn = (this.angle >= 0) ? sn : -sn;
+		cs = (this.chAngle >= 0) ? cs : -cs;
+		sn = (this.chAngle >= 0) ? sn : -sn;
 
 		// now we need to move x and y along the rotated axes.
 		let px = v[0] * cs - v[1] * sn;

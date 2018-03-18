@@ -30,7 +30,7 @@ function handleMouseWheel(event) {
     dz = -1;
   }
 
-  let tv = v3.mulScalar(activeView.normal, dz); 
+  let tv = v3.mulScalar(activeView.currentNormal, dz); 
   v3.add(center, tv, center);
   for (let view of views) {
     view.updateCrosshairPosition(center);
@@ -114,11 +114,10 @@ function handleMouseMove(event) {
   else if (mouseInfo.buttonDown[0] == true && mouseInfo.buttonDown[1] == false && mouseInfo.buttonDown[2] == false) { // left button pressed
       if (mode == MODE_MOVE) {
         
-        let tv = v3.add(v3.mulScalar(activeView.U, dx * activeView.scale), v3.mulScalar(activeView.V, -dy * activeView.scale)); // crosshair translation in world coordinates
+        let tv = v3.add(v3.mulScalar(activeView.currentU, dx * activeView.currentScale), v3.mulScalar(activeView.currentV, -dy * activeView.currentScale)); // crosshair translation in world coordinates
         v3.add(center, tv, center);
         for (let view of views) {
           view.updateCrosshairPosition(center);
-          
         }
 
       }
@@ -128,10 +127,7 @@ function handleMouseMove(event) {
         for (let view of views) {
           if (view != activeView) {
             // rotate view.U and view.V dtheta around activeView.normal
-            let rxf = m4.axisRotation(activeView.normal, -dtheta);
-            m4.transformNormal(rxf, view.normal, view.normal);
-            m4.transformDirection(rxf, view.U, view.U);
-            m4.transformDirection(rxf, view.V, view.V);
+            view.rotateImage(activeView.currentNormal, dtheta);
             view.updateCrosshairPosition(center);
           }
         }
@@ -149,10 +145,10 @@ function handleMouseMove(event) {
   else if (mouseInfo.buttonDown[0] == false && mouseInfo.buttonDown[1] == true && mouseInfo.buttonDown[2] == false) {
     // clicked and dragged with middle button
     if (dy < 0) {
-      activeView.scale /= 1.1;
+      activeView.currentScale /= 1.1;
     } 
     else {
-      activeView.scale *= 1.1;
+      activeView.currentScale *= 1.1;
     }
     for (view of views) {
       view.updateCrosshairPosition(center);
@@ -191,5 +187,12 @@ function handleMouseUp(event) {
   }
   else {
       event.cancelBubble = true;
+  }
+}
+
+function resetViews() {
+  center = [0, 0, 0];
+  for (let view of views) {
+    view.reset();
   }
 }
