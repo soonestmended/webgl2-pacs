@@ -57,6 +57,7 @@ class Study {
     let nImages = argmap.get('imageData'); // array of image data from the nifti files
 
     this.series = []; 
+    this.masks = [];
 
     let N = nHeaders.length;
 
@@ -129,66 +130,85 @@ class Study {
 
   }
 
-  addMaskFromNifti(seriesIndex, maskHeader, maskData) {
+  addMaskFromNifti(maskHeader, maskData) {
     // mask is an array of images with matching depth
-    if (seriesIndex >= this.series.length) {
-      console.log("Adding mask failed -- series " + seriesIndex + " doesn't exist.");
-      return;
-    } 
-    var s = this.series[seriesIndex];
+//    if (seriesIndex >= this.series.length) {
+//      console.log("Adding mask failed -- series " + seriesIndex + " doesn't exist.");
+//      return;
+//    } 
+//    var s = this.series[seriesIndex];
     var w = maskHeader.dims[1];
     var h = maskHeader.dims[2];
     var d = maskHeader.dims[3];
     let vWidth = maskHeader.pixDims[1];
     let vHeight = maskHeader.pixDims[2];
     let vDepth = maskHeader.pixDims[3];
-    if (s.width != w || s.height != h || s.depth != d) {
-      console.log("Adding mask failed -- mask dimensions don't match series dimensions.");
-      return;
-    }
-    this.mask = new Map();
+//    if (s.width != w || s.height != h || s.depth != d) {
+//      console.log("Adding mask failed -- mask dimensions don't match series dimensions.");
+//      return;
+//    }
+//    this.mask = new Map();
 
     var loadedImages = [];
     for (var j = 0; j < d; j++) { // loop over image
       var sliceSize = w * h * (maskHeader.numBitsPerVoxel/8);
       loadedImages.push(new Int16Array(maskData.slice(j*sliceSize, (j+1)*sliceSize)));
     }
-    this.mask.set(seriesIndex, new Series({width: w, height: h, depth: d, name: maskHeader.description, images: loadedImages, voxelWidth: vWidth, voxelHeight: vHeight, voxelDepth: vDepth}));
+
+    // transformation matrix from voxel space to world space (I think)
+    let xform = m4.identity();
+
+    // twgl stores matrices in column major order
+    xform[0] =  maskHeader.affine[0][0];
+    xform[1] =  maskHeader.affine[1][0];
+    xform[2] =  maskHeader.affine[2][0];
+
+    xform[4] =  maskHeader.affine[0][1];
+    xform[5] =  maskHeader.affine[1][1];
+    xform[6] =  maskHeader.affine[2][1];
+
+    xform[8] =  maskHeader.affine[0][2];
+    xform[9] =  maskHeader.affine[1][2];
+    xform[10] = maskHeader.affine[2][2];
+
+    xform[12] = maskHeader.affine[0][3];
+    xform[13] = maskHeader.affine[1][3];
+    xform[14] = maskHeader.affine[2][3];
+
+    this.masks.push(new Series({width: w, height: h, depth: d, name: maskHeader.description, images: loadedImages, voxelWidth: vWidth, voxelHeight: vHeight, voxelDepth: vDepth, voxel2world: xform}));
   }
 
-  maskTo3DTextures() {
+  masksTo3DTextures() {
     var texArray = [];
-    for (var i = 0; i < this.series.length; ++i) {
-      if (!this.mask.has(i)) {
-        texArray.push(null);
-        continue;
+    for (var i = 0; i < this.masks.length; ++i) {
+      let j = 0;
+      let s = this.masks[i];
+      let texData = flatten(s.images);
+      let texDataAsFloats = new Float32Array(texData.length);
+      for (let i = 0; i < texData.length; ++i) {
+        texDataAsFloats[i] = texData[i] > 0 ? 1 : 0;
       }
-      var s = this.mask.get(i);
-      var texData = flatten(s.images);
       texArray.push(twgl.createTexture(gl, {
         target: gl.TEXTURE_3D,
         minMag: gl.NEAREST,
         width: s.width,
         height: s.height,
         depth: s.depth,
-        internalFormat: gl.R16I,
-        format: gl.RED_INTEGER,
-        type: gl.SHORT,
-        src: texData,
+        internalFormat: gl.R32F,
+        format: gl.RED,
+        type: gl.FLOAT,
+        src: texDataAsFloats,
       }));
     }
     return texArray;
   }
 
-  maskTo2DTextures() {
+  masksTo2DTextures() {
     var texArray = [];
-    for (var i = 0; i < this.series.length; ++i) {
-      if (!this.mask.has(i)) {
-        texArray.push(null);
-        continue;
-      }
+    for (var i = 0; i < this.masks.length; ++i) {
+
       var tex = [];
-      var s = this.mask.get(i);
+      var s = this.masks[i];
       for (let img of s.images) {
         var texData = twgl.primitives.createAugmentedTypedArray(4, s.width * s.height); // Default Float32 array
         if (img instanceof Int16Array) {
@@ -218,6 +238,7 @@ class Study {
       var texDataAsFloats = new Float32Array(texData.length);
       for (var i = 0; i < texData.length; ++i) {
         texDataAsFloats[i] = texData[i] /32768;
+        
       }
       
       texArray.push(twgl.createTexture(gl, {

@@ -1,0 +1,457 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"texData",
+				"texDataAsFloats"
+			],
+			[
+				"type",
+				"type_as_int"
+			],
+			[
+				"bunny",
+				"bunnyPLYText"
+			],
+			[
+				"framebu",
+				"framebufferTextures"
+			],
+			[
+				"prim",
+				"primitives"
+			],
+			[
+				"co",
+				"cornellBoxGeometry"
+			],
+			[
+				"cur",
+				"currentVertex"
+			],
+			[
+				"y",
+				"y"
+			],
+			[
+				"intersectB",
+				"intersectBBox"
+			],
+			[
+				"update",
+				"updateCrosshairPosition"
+			],
+			[
+				"w",
+				"u_world2voxel"
+			],
+			[
+				"butto",
+				"buttonDown"
+			],
+			[
+				"drawUni",
+				"drawUniforms_rotate"
+			],
+			[
+				"u_",
+				"u_maskTex"
+			],
+			[
+				"textue",
+				"texturesArray"
+			],
+			[
+				"ex",
+				"days_expected"
+			],
+			[
+				"total",
+				"total_locums"
+			],
+			[
+				"create",
+				"createAugmentedTypedArray"
+			],
+			[
+				"u_te",
+				"u_texVel"
+			],
+			[
+				"DEP",
+				"DEPTH_BUFFER_BIT"
+			],
+			[
+				"u_tex",
+				"u_texZVx"
+			],
+			[
+				"u_world",
+				"u_worldViewProjection"
+			],
+			[
+				"verte",
+				"vertexPositionArray"
+			],
+			[
+				"creat",
+				"createAugmentedTypedArray"
+			],
+			[
+				"get",
+				"getElementById"
+			]
+		]
+	},
+	"buffers":
+	[
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 71.0,
+		"last_filter": "rsub",
+		"selected_items":
+		[
+			[
+				"rsub",
+				"Preferences: RemoteSubl Settings"
+			],
+			[
+				"rinstall",
+				"Package Control: Install Package"
+			],
+			[
+				"",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 428.0
+	},
+	"console":
+	{
+		"height": 126.0,
+		"history":
+		[
+			"import urllib.request,os,hashlib; h = '2915d1851351e5ee549c20394736b442' + '8bc59f460fa1548d1514676163dafc88'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); by = urllib.request.urlopen( 'http://packagecontrol.io/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); print('Error validating download (got %s instead of %s), please try manual install' % (dh, h)) if dh != h else open(os.path.join( ipp, pf), 'wb' ).write(by)"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/c/users/dave/appdata/local/temp/omnium-jap0fq/q1.js",
+		"/c/users/dave/appdata/local/temp/omnium-xh7jn3/Scene.js",
+		"/C/Users/Dave/Documents/GitHub/webgl2-pacs/nifti_test.js",
+		"/C/Users/Dave/Documents/GitHub/webgl2-pacs/FS_main.glsl",
+		"/C/Users/Dave/Documents/GitHub/webgl2-pacs/Study.js",
+		"/C/Users/Dave/Documents/GitHub/webgl2-pacs/VS_main.glsl",
+		"/C/Users/Dave/Documents/GitHub/webgl2-pacs/VS_rotate.glsl",
+		"/C/Users/Dave/Documents/GitHub/webgl2-pacs/FS_rotate.glsl",
+		"/C/Users/Dave/Documents/GitHub/webgl2-pacs/events.js",
+		"/C/Users/Dave/Documents/GitHub/webgl2-pacs/View2D.js",
+		"/C/Users/Dave/Documents/GitHub/webgl2-pacs/index.html",
+		"/C/Users/Dave/hugo/sites/etherized.org/static/code/webgl/bunny_normals.ply",
+		"/c/users/dave/appdata/local/temp/rsub-oxtgw4/q1.js",
+		"/C/Users/Dave/Downloads/ocs (5)",
+		"/c/users/dave/appdata/local/temp/rsub-lwogjh/Scene.js",
+		"/C/Users/Dave/code/February_2018.txt",
+		"/C/Users/Dave/code/amicount.py",
+		"/C/Users/Dave/code/february_2018_payroll",
+		"/c/users/dave/appdata/local/temp/rsub-hshu1u/q1.js",
+		"/c/users/dave/appdata/local/temp/rsub-ozpadg/q1.drawFS-2.glsl",
+		"/c/users/dave/appdata/local/temp/rsub-js13ki/Scene.js",
+		"/c/users/dave/appdata/local/temp/rsub-b0q5_a/q1.drawFS-2.glsl",
+		"/c/users/dave/appdata/local/temp/rsub-7ie2ne/foo",
+		"/c/users/dave/appdata/local/temp/rsub-qra_gm/foo.txt",
+		"/c/users/dave/appdata/local/temp/rsub-dhn579/foo.txt",
+		"/c/users/dave/appdata/local/temp/rsub-r413jj/q1.js",
+		"/c/users/dave/appdata/local/temp/rsub-fabw0a/q1.drawFS-2.glsl",
+		"/c/users/dave/appdata/local/temp/rsub-q3f_p8/q1.drawFS-2.glsl",
+		"/C/Users/Dave/hugo/sites/etherized.org/static/code/webgl/q1.drawFS-2.glsl",
+		"/C/Users/Dave/hugo/sites/etherized.org/static/code/webgl/q1.js",
+		"/C/Users/Dave/hugo/sites/etherized.org/static/code/webgl/Scene.js",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/experiments/q1.html",
+		"/c/users/dave/appdata/local/temp/rsub-t83vfw/BVH.js",
+		"/C/Users/Dave/Desktop/local edits/Scene.js",
+		"/C/Users/Dave/Desktop/local edits/q1.js",
+		"/C/Users/Dave/Desktop/local edits/q1.drawFS-2.glsl",
+		"/c/users/dave/appdata/local/temp/rsub-d1aieg/q1.js",
+		"/C/Users/Dave/AppData/Local/Temp/rsub-qeull_/Scene.js",
+		"/c/users/dave/appdata/local/temp/rsub-sg7rsp/q1.drawFS-2.glsl",
+		"/c/users/dave/appdata/local/temp/rsub-80gw92/Scene.js",
+		"/c/users/dave/appdata/local/temp/rsub-iyn336/BVH.js",
+		"/c/users/dave/appdata/local/temp/rsub-45w2so/q1.drawFS-2.glsl",
+		"/c/users/dave/appdata/local/temp/rsub-2x06h1/q1.drawVS.glsl",
+		"/c/users/dave/appdata/local/temp/rsub-ff81pl/q1.js",
+		"/c/users/dave/appdata/local/temp/rsub-3uiddl/q1.drawFS-2.glsl",
+		"/C/Users/Dave/hugo/sites/etherized.org/static/code/webgl/points2.js",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/experiments/perlin.html",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/experiments/wraith.html",
+		"/C/Users/Dave/hugo/sites/etherized.org/static/code/webgl/q1.drawFS.glsl",
+		"/C/Users/Dave/hugo/sites/etherized.org/static/code/webgl/q1-test.js",
+		"/C/Users/Dave/code/september.ocs",
+		"/C/Users/Dave/code/September_Payroll.txt",
+		"/C/ASTRO_WORKSPACE/Tulip/br.py",
+		"/C/Users/Dave/Documents/GitHub/webgl2-pacs/FS.glsl",
+		"/C/Users/Dave/Documents/GitHub/webgl2-pacs/VS.glsl",
+		"/C/Users/Dave/AppData/Local/Temp/Temp1_completepoeticalshel_daisy.zip/completepoeticalshel_daisy.xml",
+		"/C/Users/Dave/hugo/sites/etherized.org/static/code/webgl/mandelbulb.html",
+		"/C/Users/Dave/Downloads/ocs (1)",
+		"/C/Users/Dave/Downloads/ocs (2)",
+		"/C/Users/Dave/code/july-august.ocs",
+		"/C/Users/Dave/code/August Payroll.txt",
+		"/C/Users/Dave/code/july.ocs",
+		"/C/Users/Dave/code/July 2017.txt",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/astro/eastern_veil.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/astro/m42.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/astro/elephant.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/layouts/partials/sidebar.html",
+		"/C/Users/Dave/hugo/sites/etherized.org/config.toml",
+		"/C/Users/Dave/hugo/sites/etherized.org/static/css/main.css",
+		"/C/Users/Dave/hugo/sites/etherized.org/layouts/section/instagram.html",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/astro/ngc6888.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/astro/m101.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/layouts/_default/list.html",
+		"/C/Users/Dave/hugo/sites/etherized.org/layouts/section/astro.html",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/astro/m27.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/astro/m13.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/layouts/partials/submenu.html",
+		"/C/Users/Dave/hugo/sites/etherized.org/layouts/astro/single.html",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/astro/wizard_nebula.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/astro/m31.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/astro/m81.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/astro/m45.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/layouts/_default/single.html",
+		"/C/Users/Dave/Desktop/nifti_test/FS.glsl",
+		"/C/Users/Dave/Desktop/nifti_test/VS.glsl",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/astro/m27-DSLR.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/astro/deepfield1.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/astro/ic1396-dslr.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/astro/m31-LRGB.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/astro/m27-nb.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/astro/m31-dslr.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/layouts/_default/summary.html",
+		"/C/Users/Dave/hugo/sites/etherized.org/layouts/shortcodes/fullsize.html",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/astro/ngc6960.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/astro/eclipse.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/astro/leo_triplet.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/astro/veil-east.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/astro/deepfield.md",
+		"/C/Users/Dave/code/foo.txt",
+		"/C/Users/Dave/Desktop/nifti_test/nifti_test.html",
+		"/C/Users/Dave/Documents/GitHub/soonestmended.github.io/webgl-pacs/nifti_test.js",
+		"/C/Users/Dave/Desktop/nifti_test/nifti_test.js",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/instagram/instagram.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/layouts/astro/list.html",
+		"/C/Users/Dave/Desktop/nifti_test/r_TCGA-30-1-FLAIR-1-M.nii",
+		"/C/Users/Dave/Desktop/nifti_test/r_TCGA-30-1-FLAIR-1-M.nii.gz",
+		"/C/Users/Dave/hugo/sites/etherized.org/static/code/webgl/shaderLoader.js",
+		"/C/Users/Dave/hugo/sites/etherized.org/static/code/webgl/mandelbrot.html",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/webjs/fsa.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/webjs/wraith.html",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/webjs/perlin.html",
+		"/C/Users/Dave/hugo/sites/etherized.org/archetypes/astro.md",
+		"/C/Users/Dave/AppData/Local/Temp/Temp1_spring1617_assignment2.zip/assignment2/cs231n/layers.py",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/astro/m27-zwo.md",
+		"/C/Users/Dave/Dropbox/BunsOnlyRedux/Thanh Templates/mr_iac_with.rtf",
+		"/C/Users/Dave/Desktop/glm/readme.md",
+		"/C/Users/Dave/code/openGLwiki/common/README",
+		"/C/boost_1_62_0/libs/regex/readme.txt",
+		"/C/Users/Dave/Desktop/freeglut-3.0.0/README.win32",
+		"/C/Users/Dave/Desktop/readme.md",
+		"/C/Users/Dave/Downloads/axy.fits",
+		"/C/ASTRO_WORKSPACE/Crescent Nebula/Lights/bpp/logs/20160908191314.log",
+		"/C/Users/Dave/Desktop/bac-sim-25k-1.txt",
+		"/C/Users/Dave/Desktop/scratch.csv",
+		"/C/Users/Dave/Desktop/count.xlsx",
+		"/C/Users/Dave/hugo/sites/etherized.org/static/code/webgl/julia.html",
+		"/C/Users/Dave/hugo/sites/etherized.org/content/webjs/julia.md",
+		"/C/Users/Dave/hugo/sites/etherized.org/static/code/webgl/2D_panel_vsh.glsl"
+	],
+	"find":
+	{
+		"height": 40.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": true,
+		"find_history":
+		[
+			"rotate",
+			"bunny",
+			"header",
+			"view",
+			"HS",
+			"eta",
+			";\n",
+			"vertices",
+			"event2canvas",
+			"getActiveView(",
+			"getActiveView()",
+			"getTransform()",
+			"new",
+			"displayWindow",
+			"window",
+			"sidebar",
+			"checkLoaded",
+			"niftiMaskData",
+			"niftiData",
+			"particle",
+			"c2",
+			"VyVz",
+			"ZVx",
+			"XY",
+			"//\t ",
+			"XY",
+			"ZVx",
+			"XY",
+			"texSrcArray",
+			"0",
+			"j*texHeight+i",
+			"1",
+			"code-description",
+			"code"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"maskHeader",
+			"this",
+			"normals",
+			"getVoxel2World()",
+			"getVoxel2World",
+			"Color",
+			"Vel",
+			"Pos",
+			"ZVx",
+			"VyVz",
+			"ZVx",
+			"texSrcArray0",
+			" texSrcArray.push(twoBytes);\n\n    twoBytes = packFloat(positionArray[posIndex+1]);\n    texSrcArray.push(twoBytes);\n\n    twoBytes = packFloat(positionArray[posIndex+2]);\n    texSrcArray.push(twoBytes);\n\n    texSrcArray.push(0, 0);\n\n    texSrcArray.push(0, 0);\n\n    texSrcArray.push(0, 0);\n\n    texSrcArray.push(0, 0);\n\n    texSrcArray.push(0, 0);",
+			"index"
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 23.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"output.unsaved_changes":
+	{
+		"height": 27.0
+	},
+	"pinned_build_system": "",
+	"project": "webgl2-pacs.sublime-project",
+	"replace":
+	{
+		"height": 72.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 500.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 380.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 150.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

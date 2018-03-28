@@ -96,15 +96,17 @@ function launch() {
 
   study = new Study(argmap);
   var maskHeaderImagePair = readNifti(maskNiftiData);
-  study.addMaskFromNifti(0, maskHeaderImagePair[0], maskHeaderImagePair[1]);
+  study.addMaskFromNifti(maskHeaderImagePair[0], maskHeaderImagePair[1]);
 
   texturesArray = study.to3DTextures();
-  maskTexturesArray = study.maskTo3DTextures();
+  maskTexturesArray = study.masksTo3DTextures();
 
   // create 2D views
-  views.push(new View2D({scale: .5, xColor: [0, 1, 0, 1], yColor: [1, 0, 0, 1], normal: [0, 0, 1], U: [1, 0, 0], V: [0, 1, 0], study, displayWindow, displayLevel, width: 400, height: 400, x: 0, y: 0}));
+  views.push(new View2D({scale: 1.0, xColor: [0, 1, 0, 1], yColor: [1, 0, 0, 1], normal: [0, 0, 1], U: [1, 0, 0], V: [0, 1, 0], study, displayWindow, displayLevel, width: 400, height: 400, x: 0, y: 0}));
   views.push(new View2D({xColor: [0, 0, 1, 1], yColor: [1, 0, 0, 1], normal: [0, 1, 0], U: [1, 0, 0], V: [0, 0, 1], study, displayWindow, displayLevel, width: 400, height: 400, x: 400, y: 400}));
   views.push(new View2D({xColor: [0, 0, 1, 1], yColor: [0, 1, 0, 1], normal: [1, 0, 0], U: [0, 1, 0], V: [0, 0, 1], study, displayWindow, displayLevel, width: 400, height: 400, x: 400, y: 0}));
+
+  views[0].showMask = false;
 
   //viewMain.setSeries(seriesIndex);
   //viewMain.setShowMask(false);
@@ -207,12 +209,16 @@ function render(time) {
 
   drawUniforms.u_screenDim = [gl.canvas.width, gl.canvas.height];
 
-  //gl.enable(gl.DEPTH_TEST);
-  gl.enable(gl.CULL_FACE);
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  gl.enable (gl.BLEND);
-  gl.blendFunc (gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.disable(gl.DEPTH_TEST);
+  //gl.enable(gl.CULL_FACE);
+  gl.clear(gl.COLOR_BUFFER_BIT);
 
+  
+  //gl.enable (gl.BLEND);
+  //gl.blendFunc(gl.ONE, gl.ZERO);
+  //gl.blendEquationSeparate(gl.FUNC_ADD, gl.MIN);
+
+   
   // Draw views
   for (let view of views) {
     gl.viewport(view.x, view.y, view.width, view.height);
@@ -231,26 +237,35 @@ function render(time) {
     drawUniforms.u_normal = view.currentNormal;
     drawUniforms.u_U = view.currentU;
     drawUniforms.u_V = view.currentV;
+    drawUniforms.u_color = [1, 1, 1, 1];
     //drawUniforms.u_d = view.d;
     drawUniforms.u_scale = view.currentScale;
     //drawUniforms.u_correctionXform = view.correctionXform;
 
         // Need to re-work exactly how we get the slice.
-    if (view.showMask) {
-      drawUniforms.u_maskTex = maskTexturesArray[view.seriesIndex];
-      drawUniforms.u_maskAlpha = 1.0;
-    }
-    else {
-      drawUniforms.u_maskTex = noMaskTexture;
-      drawUniforms.u_maskAlpha = 0.0;
-    }
+    
     drawUniforms.u_wl = [view.displayWindow /32768, view.displayLevel/32768];
 
     twgl.setUniforms(programInfo, drawUniforms);
     twgl.drawBufferInfo(gl, drawBufferInfo, gl.TRIANGLES);
 
-    // hard code the three views with attendant colors
+    // draw zero or more masks
+   
+    gl.enable (gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    //gl.blendEquationSeparate(gl.FUNC_ADD, gl.MIN);
+    
+    if (view.showMask) {
 
+      drawUniforms.u_world2voxel = study.masks[0].world2voxel;
+      drawUniforms.u_tex = maskTexturesArray[0];
+      drawUniforms.u_color = [0, 0, 1.0, .5];
+      drawUniforms.u_wl = [1, 0.5];
+      twgl.setUniforms(programInfo, drawUniforms);
+      twgl.drawBufferInfo(gl, drawBufferInfo, gl.TRIANGLES);
+    }
+
+    // hard code the three views with attendant colors
     gl.useProgram(programInfo_rotate.program);
     twgl.setBuffersAndAttributes(gl, programInfo_rotate, drawBufferInfo_crosshair_X);
     //let xf = m4.multiply(mainXform, view.xform);

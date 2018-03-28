@@ -14,6 +14,7 @@ uniform vec3 u_center;
 uniform float u_scale;
 uniform vec3 u_U;
 uniform vec3 u_V;
+uniform vec4 u_color;
 uniform float d;
 
 in vec4 a_position;
