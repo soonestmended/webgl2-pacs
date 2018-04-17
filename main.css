@@ -32,7 +32,7 @@ li:before {
     border: 0px solid transparent;
 }
 */
-li:hover {
+#masksUL li:hover {
 	background: orange;
 }
 

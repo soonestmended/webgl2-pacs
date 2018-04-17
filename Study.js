@@ -2,7 +2,7 @@ function isTypedArray(obj) {
     return !!obj && obj.byteLength !== undefined;
 }
 
-
+/*
 function flattenArrayOfArrays(input) {
   if (!isTypedArray(input[0])) return input;
 
@@ -16,6 +16,7 @@ function flattenArrayOfArrays(input) {
   }
   return ans;
 }
+*/
 
 class BBox {
   constructor(llc, urc) {
@@ -37,7 +38,7 @@ class BBox {
 
 class Series {
   // NOTE: each series will have a world space bounding box determined by width * voxelWidth, height * voxelHeight, depth * voxelDepth and its transformation matrix.
-  constructor({unitsString = "", width = 0, height = 0, depth = 0, voxelWidth = 0, voxelHeight = 0, voxelDepth = 0, name = "empty", images = null, voxel2world = null} = {}) {
+  constructor({unitsString = "", width = 0, height = 0, depth = 0, voxelWidth = 0, voxelHeight = 0, voxelDepth = 0, name = "empty", imgData = null, voxel2world = null} = {}) {
     this.width = width;
     this.height = height;
     this.depth = depth;
@@ -46,7 +47,7 @@ class Series {
     this.voxelDepth = voxelDepth;
     this.voxelVolume = voxelWidth * voxelHeight * voxelDepth * .001; // convert to cc
     this.name = name;
-    this.images = images;
+    this.imgData = imgData;
     this.mask = null;
     this.voxel2world = voxel2world;
     this.unitsString = unitsString;
@@ -65,17 +66,28 @@ class Mask extends Series {
 
   countPositiveVoxels() {
     let ans = 0;
-    if (!isTypedArray(this.images[0])) {
-      for (let i = 0; i < this.images.length; ++i) 
-        if (this.images[i] > 0) ans++;
-    }
-    else {
-      for (let k = 0; k < this.images.length; ++k) 
-        for (let j = 0; j < this.height; ++j) 
-          for (let i = 0; i < this.width; ++i) 
-            if (this.images[k][j*this.height+i] > 0) ans++;
-    }
+    for (let i = 0; i < this.imgData.length; ++i) 
+        if (this.imgData[i] > 0) ans++;
     return ans;
+  }
+
+  contains(p) {
+    let mcvx = m4.transformPoint(this.world2voxel, p); // mask coordinates in voxel space
+    mcvx[0] = Math.round(mcvx[0]);
+    mcvx[1] = Math.round(mcvx[1]);
+    mcvx[2] = Math.round(mcvx[2]);
+    //console.log(mcvx);
+    let mcidx = mcvx[2]*this.width*this.height+mcvx[1]*this.width+mcvx[0];
+    //console.log(mcidx);
+    return this.imgData[mcidx] > 0;
+  }
+
+  volumeInCC() {
+    return this.maskedVoxels * this.voxelVolumeInCC();
+  }
+
+  voxelVolumeInCC() {
+    return this.voxelWidth * this.voxelHeight * this.voxelDepth * .001;
   }
 }
 
@@ -129,14 +141,25 @@ class Study {
       xform[13] = header.affine[1][3];
       xform[14] = header.affine[2][3];
 
+      let imageDataAsFloats = new Float32Array(w*h*d);
+      let loadedImageData = new Int16Array(nImages[i]);
 
-      for (let j = 0; j < d; j++) { // loop over image
-        let sliceSize = w * h * (header.numBitsPerVoxel/8);
-        loadedImages.push(new Int16Array(nImages[i].slice(j*sliceSize, (j+1)*sliceSize)));
+      for (let k = 0; k < d; ++k) { // loop over image
+        for (let j = 0 ; j < h; ++j) {
+          for (let ii = 0; ii < w; ++ii) {
+            let index = k*w*h+j*w+ii;
+            imageDataAsFloats[index] = loadedImageData[index] / 32768;
+          }
+        }
       }
+
+
+      //  let sliceSize = w * h * (header.numBitsPerVoxel/8);
+      //  loadedImages.push(new Int16Array(nImages[i].slice(j*sliceSize, (j+1)*sliceSize)));
+      
       let unitsString = header.getUnitsCodeString(header.xyzt_units & 7);
       if (unitsString == "millimeters") unitsString = "mm";
-      this.series.push(new Series({units: unitsString, width: w, height: h, depth: d, voxelWidth: vWidth, voxelHeight: vHeight, voxelDepth: vDepth, name: header.description, images: loadedImages, voxel2world: xform}));
+      this.series.push(new Series({units: unitsString, width: w, height: h, depth: d, voxelWidth: vWidth, voxelHeight: vHeight, voxelDepth: vDepth, name: header.description, imgData: imageDataAsFloats, voxel2world: xform}));
 
     }
 
@@ -169,7 +192,7 @@ class Study {
     let w, h, d, idx;
     w = h = 256;
     d = 50;
-    let maskData = new Int16Array(w*h*d);
+    let maskData = new Float32Array(w*h*d);
     let x, y, z;
     for (let k = 0; k < d; k++) {
       z = 2 * (k / d) - 1;
@@ -189,7 +212,6 @@ class Study {
     let bboxDim = this.bbox.dim();
     let bboxDimCopy = bboxDim.slice();
     
-
     bboxDim[0] /= w;
     bboxDim[1] /= h;
     bboxDim[2] /= d;
@@ -201,7 +223,7 @@ class Study {
 
     // now push mask with those characteristics
     
-    this.masks.push(new Mask({units: "mm", color: c, width: w, height: h, depth: d, name: "dummy mask", images: maskData, voxelWidth: bboxDim[0], voxelHeight: bboxDim[1], voxelDepth: bboxDim[2], voxel2world: v2w}));
+    this.masks.push(new Mask({units: "mm", color: c, width: w, height: h, depth: d, name: "dummy mask", imgData: maskData, voxelWidth: bboxDim[0], voxelHeight: bboxDim[1], voxelDepth: bboxDim[2], voxel2world: v2w}));
 
   }
 
@@ -224,10 +246,16 @@ class Study {
 //    }
 //    this.mask = new Map();
 
-    var loadedImages = [];
-    for (var j = 0; j < d; j++) { // loop over image
-      var sliceSize = w * h * (maskHeader.numBitsPerVoxel/8);
-      loadedImages.push(new Int16Array(maskData.slice(j*sliceSize, (j+1)*sliceSize)));
+    let imageDataAsFloats = new Float32Array(w*h*d);
+    let loadedImageData = new Int16Array(maskData);
+
+    for (let k = 0; k < d; ++k) { // loop over image
+      for (let j = 0 ; j < h; ++j) {
+        for (let ii = 0; ii < w; ++ii) {
+          let index = k*w*h+j*w+ii;
+          imageDataAsFloats[index] = loadedImageData[index] > 0 ? 1 : 0;
+        }
+      }
     }
 
     // transformation matrix from voxel space to world space (I think)
@@ -253,7 +281,7 @@ class Study {
     let unitsString = maskHeader.getUnitsCodeString(maskHeader.xyzt_units & 7);
     if (unitsString == "millimeters") unitsString = "mm";
 
-    this.masks.push(new Mask({units: unitsString, color: c, width: w, height: h, depth: d, name: maskHeader.description, images: loadedImages, voxelWidth: vWidth, voxelHeight: vHeight, voxelDepth: vDepth, voxel2world: xform}));
+    this.masks.push(new Mask({units: unitsString, color: c, width: w, height: h, depth: d, name: maskHeader.description, imgData: imageDataAsFloats, voxelWidth: vWidth, voxelHeight: vHeight, voxelDepth: vDepth, voxel2world: xform}));
   }
 
   masksTo3DTextures() {
@@ -261,11 +289,11 @@ class Study {
     for (var i = 0; i < this.masks.length; ++i) {
       let j = 0;
       let s = this.masks[i];
-      let texData = flattenArrayOfArrays(s.images);
-      let texDataAsFloats = new Float32Array(texData.length);
-      for (let i = 0; i < texData.length; ++i) {
-        texDataAsFloats[i] = texData[i] > 0 ? 1 : 0;
-      }
+      //let texData = flattenArrayOfArrays(s.images);
+      //let texDataAsFloats = new Float32Array(texData.length);
+      //for (let i = 0; i < texData.length; ++i) {
+        //texDataAsFloats[i] = texData[i] > 0 ? 1 : 0;
+      //}
       texArray.push(twgl.createTexture(gl, {
         target: gl.TEXTURE_3D,
         minMag: gl.NEAREST,
@@ -275,7 +303,7 @@ class Study {
         internalFormat: gl.R32F,
         format: gl.RED,
         type: gl.FLOAT,
-        src: texDataAsFloats,
+        src: s.imgData,
       }));
     }
     return texArray;
@@ -312,12 +340,7 @@ class Study {
   to3DTextures() {
     var texArray = [];
     for (let s of this.series) {
-      var texData = flattenArrayOfArrays(s.images);
-      var texDataAsFloats = new Float32Array(texData.length);
-      for (var i = 0; i < texData.length; ++i) {
-        texDataAsFloats[i] = texData[i] /32768;
-        
-      }
+      
       
       texArray.push(twgl.createTexture(gl, {
         target: gl.TEXTURE_3D,
@@ -330,7 +353,7 @@ class Study {
         format: gl.RED,
         type: gl.FLOAT,
         wrap: gl.CLAMP_TO_EDGE,
-        src: texDataAsFloats,
+        src: s.imgData,
       }));
     }
     return texArray;
@@ -362,8 +385,77 @@ class Study {
     return texArray;
   }
 
+  maskOverlap2(activeMasks) {
+    let bboxDim = this.bbox.dim();
+    let steps = [32, 32, 32];
+    let dx = bboxDim[0] / steps[0];
+    let dy = bboxDim[1] / steps[1];
+    let dz = bboxDim[2] / steps[2];
+    let nov = 0; // number of voxels in every mask
+    let nmask = 0; // number of voxels in any mask
+
+    for (let z = this.bbox.llc[2]; z < this.bbox.urc[2]; z+=dz) {
+      for (let y = this.bbox.llc[1]; y < this.bbox.urc[1]; y+=dy) {
+        for (let x = this.bbox.llc[0]; x < this.bbox.urc[0]; x+=dx) {
+          let inNumMasks = 0;
+          for (let m of activeMasks) {
+            //let mcvx = m4.transformPoint(m.world2voxel, [x, y, z]); // mask coordinates in voxel space
+            //let mcidx = Math.round(mcvx[2]*m.width*m.height+mcvx[1]*m.width+mcvx[0]);
+
+            if (m.contains([x, y, z])) {
+              inNumMasks++;
+            }
+          }
+          if (inNumMasks > 0) nmask++; // this voxel is in some mask
+          if (inNumMasks == activeMasks.length) nov++; // this voxel is in every mask
+        }
+      }
+    }
+
+    return "Overlap: " + nov / nmask; // activeMasks.length + " active masks.";
+  }
+
   maskOverlap(activeMasks) {
-    return activeMasks.length + " active masks.";
+    let bboxDim = this.bbox.dim();
+    
+    // find smallest mask by volume
+    let minVol = 999999999999;
+    let totalVolume = 0;
+    let sm; // smallest mask
+    for (let m of activeMasks) {
+      let vol = m.volumeInCC(); 
+      totalVolume += vol;
+      if (vol < minVol) {
+        minVol = vol;
+        sm = m; 
+      }
+    }
+
+    let nov = 0; // number of voxels in every mask
+
+    for (let k = 0; k < sm.depth; ++k) {
+      for (let j = 0; j < sm.height; ++j) {
+        for (let i = 0; i < sm.width; ++i) {
+          let wc = m4.transformPoint(sm.voxel2world, [i, j, k]);
+          let inEveryMask = true;
+          for (let m of activeMasks) {
+            if (m == sm) {
+              if (m.imgData[k*m.width*m.height+j*m.width+i] < 0) {
+                inEveryMask = false;
+                break;
+              }
+            }
+            if (!m.contains(wc)) {
+              inEveryMask = false;
+              break;
+            }
+          }
+          if (inEveryMask) nov++;
+        }
+      }
+    }
+    let overlapVolume = nov*sm.voxelVolumeInCC();
+    return "Overlap: " + (100 * overlapVolume / totalVolume).toFixed(2) + "% / " + Math.floor(overlapVolume) + " cc"; // activeMasks.length + " active masks.";
   }
 
 }

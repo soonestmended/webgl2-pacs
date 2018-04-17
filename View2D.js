@@ -106,7 +106,7 @@ class View2D {
 	overMoveCrosshair(x, y) {
 		let v1 = this.ch2origin([x, y]);
 
-		console.log("x: " + v1[0] + "\ty: " + v1[1]);
+		//console.log("x: " + v1[0] + "\ty: " + v1[1]);
 
 		if (v1[0] >= -15 && v1[0] < 15 && v1[1] >= -15 && v1[1] < 15) return true;
 		return false;

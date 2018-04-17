@@ -12,7 +12,7 @@ var mouseInfo = {
 };
 
 function getActiveView(xy) {
-  console.log("x: " + xy[0] + "  y: " + xy[1]);
+  //console.log("x: " + xy[0] + "  y: " + xy[1]);
   for (let view of views) {
     if (view.viewportContains(xy[0], xy[1])) {
       return view;
@@ -119,6 +119,7 @@ function handleMouseMove(event) {
         for (let view of views) {
           view.updateCrosshairPosition(center);
         }
+        console.log("Center: " + center + " " + study.masks[1].contains(center));// + " " + study.masks[1].contains(center));
 
       }
 
@@ -132,14 +133,11 @@ function handleMouseMove(event) {
           }
         }
       }
-
-
-
   }
   else if (mouseInfo.buttonDown[0] == false && mouseInfo.buttonDown[1] == false && mouseInfo.buttonDown[2] == true) {
     activeView.displayWindow += dx;
     activeView.displayLevel += dy;
-    console.log("w: " + activeView.displayWindow + "\tl: " + activeView.displayLevel);
+    //console.log("w: " + activeView.displayWindow + "\tl: " + activeView.displayLevel);
   }
 
   else if (mouseInfo.buttonDown[0] == false && mouseInfo.buttonDown[1] == true && mouseInfo.buttonDown[2] == false) {
