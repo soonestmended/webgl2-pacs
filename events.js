@@ -196,3 +196,35 @@ function resetViews() {
     view.reset();
   }
 }
+
+function showMask(id) {
+  let maskInfo = document.getElementById("maskInfo");
+  let m = study.masks[id];
+  m.show = m.show ? false : true;
+  let activeMasks = [];
+  for (let msk of study.masks) {
+    if (msk.show) activeMasks.push(msk);
+  }
+  if (activeMasks.length == 0) {
+    maskInfo.innerHTML = "";
+    return;
+  }
+  maskInfo.innerHTML = "Info: ";
+  for (let am of activeMasks) {
+    maskInfo.innerHTML += 
+  "<ul> \
+    <li>Volume: " + am.maskedVoxels * am.voxelVolume + "cc</li> \
+  </ul>";
+  }
+  if (activeMasks.length == 1) return;
+  maskInfo.innerHTML += 
+  "<ul> \
+    <li>" + study.maskOverlap(activeMasks) + "</li> \
+  </ul>";
+
+  
+}
+
+function showSeries(id) {
+  seriesIndex = id;
+}

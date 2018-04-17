@@ -1,0 +1,44 @@
+#container {
+	width: 1050px;
+}
+
+#mainPanel {
+	background: black;
+	float: left;
+	margin: 0 50px 0 0;
+	padding: 0;
+}
+
+#infoPanel {
+	width: 150px;
+	float: left;
+}
+
+ul {
+	list-style-type: none;
+	margin: 0;
+	padding: 0 0 0 10px;
+}
+
+li {
+	width: 100px;
+}
+/*
+li:before {
+	float: left;
+    content: "\00a0";
+    width: 20px;
+    border: 0px solid transparent;
+}
+*/
+li:hover {
+	background: orange;
+}
+
+.seriesList {
+	margin-bottom: 50px;
+}
+
+.masksList {
+	margin-bottom: 50px;
+}

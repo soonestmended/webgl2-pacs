@@ -1,4 +1,11 @@
-function flatten(input) {
+function isTypedArray(obj) {
+    return !!obj && obj.byteLength !== undefined;
+}
+
+
+function flattenArrayOfArrays(input) {
+  if (!isTypedArray(input[0])) return input;
+
   var ans = [];
   var inputLength = input.length;
   for (var i = 0; i < inputLength; ++i) {
@@ -30,18 +37,45 @@ class BBox {
 
 class Series {
   // NOTE: each series will have a world space bounding box determined by width * voxelWidth, height * voxelHeight, depth * voxelDepth and its transformation matrix.
-  constructor({width = 0, height = 0, depth = 0, voxelWidth = 0, voxelHeight = 0, voxelDepth = 0, name = "empty", images = null, voxel2world = null} = {}) {
+  constructor({unitsString = "", width = 0, height = 0, depth = 0, voxelWidth = 0, voxelHeight = 0, voxelDepth = 0, name = "empty", images = null, voxel2world = null} = {}) {
     this.width = width;
     this.height = height;
     this.depth = depth;
     this.voxelWidth = voxelWidth;
     this.voxelHeight = voxelHeight;
     this.voxelDepth = voxelDepth;
+    this.voxelVolume = voxelWidth * voxelHeight * voxelDepth * .001; // convert to cc
     this.name = name;
     this.images = images;
     this.mask = null;
     this.voxel2world = voxel2world;
+    this.unitsString = unitsString;
     if (this.voxel2world) this.world2voxel = m4.inverse(this.voxel2world);
+  }
+}
+
+class Mask extends Series {
+  constructor(options = {}) {
+    super(options);
+    this.color = options.color === undefined ? [1, 0, 0, .5] : options.color;
+    this.totalVoxels = this.width * this.height * this.depth;
+    this.maskedVoxels = this.countPositiveVoxels();
+    this.show = false;
+  }
+
+  countPositiveVoxels() {
+    let ans = 0;
+    if (!isTypedArray(this.images[0])) {
+      for (let i = 0; i < this.images.length; ++i) 
+        if (this.images[i] > 0) ans++;
+    }
+    else {
+      for (let k = 0; k < this.images.length; ++k) 
+        for (let j = 0; j < this.height; ++j) 
+          for (let i = 0; i < this.width; ++i) 
+            if (this.images[k][j*this.height+i] > 0) ans++;
+    }
+    return ans;
   }
 }
 
@@ -100,8 +134,9 @@ class Study {
         let sliceSize = w * h * (header.numBitsPerVoxel/8);
         loadedImages.push(new Int16Array(nImages[i].slice(j*sliceSize, (j+1)*sliceSize)));
       }
-
-      this.series.push(new Series({width: w, height: h, depth: d, voxelWidth: vWidth, voxelHeight: vHeight, voxelDepth: vDepth, name: header.description, images: loadedImages, voxel2world: xform}));
+      let unitsString = header.getUnitsCodeString(header.xyzt_units & 7);
+      if (unitsString == "millimeters") unitsString = "mm";
+      this.series.push(new Series({units: unitsString, width: w, height: h, depth: d, voxelWidth: vWidth, voxelHeight: vHeight, voxelDepth: vDepth, name: header.description, images: loadedImages, voxel2world: xform}));
 
     }
 
@@ -130,7 +165,47 @@ class Study {
 
   }
 
-  addMaskFromNifti(maskHeader, maskData) {
+  addDummyMask(radius, c) {
+    let w, h, d, idx;
+    w = h = 256;
+    d = 50;
+    let maskData = new Int16Array(w*h*d);
+    let x, y, z;
+    for (let k = 0; k < d; k++) {
+      z = 2 * (k / d) - 1;
+      for (let j = 0; j < h; j++) {
+        y = 2 * (j / h) - 1;
+        for (let i = 0; i < w; i++) {
+          x = 2 * (i / w) -1;
+          idx = k*w*h + j*w + i;
+          if (x*x + y*y + z*z < radius) 
+            maskData[idx] = 1;
+          else 
+            maskData[idx] = 0;
+        }
+      }
+    }
+    // now compute matrix to scale mask to bounding box of study
+    let bboxDim = this.bbox.dim();
+    let bboxDimCopy = bboxDim.slice();
+    
+
+    bboxDim[0] /= w;
+    bboxDim[1] /= h;
+    bboxDim[2] /= d;
+    let scaleMatrix = m4.scaling(bboxDim);
+    let transMatrix = m4.translation([-w/2, -h/2, -d/2]);
+    let v2w = m4.multiply(scaleMatrix, transMatrix);
+    //m4.translate(v2w, [-bboxDimCopy[0]/2, -bboxDimCopy[1]/2, -bboxDimCopy[2]/2], v2w);
+    //m4.setTranslation(v2w, [-450, -120, -75], v2w);
+
+    // now push mask with those characteristics
+    
+    this.masks.push(new Mask({units: "mm", color: c, width: w, height: h, depth: d, name: "dummy mask", images: maskData, voxelWidth: bboxDim[0], voxelHeight: bboxDim[1], voxelDepth: bboxDim[2], voxel2world: v2w}));
+
+  }
+
+  addMaskFromNifti(maskHeader, maskData, c) {
     // mask is an array of images with matching depth
 //    if (seriesIndex >= this.series.length) {
 //      console.log("Adding mask failed -- series " + seriesIndex + " doesn't exist.");
@@ -175,7 +250,10 @@ class Study {
     xform[13] = maskHeader.affine[1][3];
     xform[14] = maskHeader.affine[2][3];
 
-    this.masks.push(new Series({width: w, height: h, depth: d, name: maskHeader.description, images: loadedImages, voxelWidth: vWidth, voxelHeight: vHeight, voxelDepth: vDepth, voxel2world: xform}));
+    let unitsString = maskHeader.getUnitsCodeString(maskHeader.xyzt_units & 7);
+    if (unitsString == "millimeters") unitsString = "mm";
+
+    this.masks.push(new Mask({units: unitsString, color: c, width: w, height: h, depth: d, name: maskHeader.description, images: loadedImages, voxelWidth: vWidth, voxelHeight: vHeight, voxelDepth: vDepth, voxel2world: xform}));
   }
 
   masksTo3DTextures() {
@@ -183,7 +261,7 @@ class Study {
     for (var i = 0; i < this.masks.length; ++i) {
       let j = 0;
       let s = this.masks[i];
-      let texData = flatten(s.images);
+      let texData = flattenArrayOfArrays(s.images);
       let texDataAsFloats = new Float32Array(texData.length);
       for (let i = 0; i < texData.length; ++i) {
         texDataAsFloats[i] = texData[i] > 0 ? 1 : 0;
@@ -234,7 +312,7 @@ class Study {
   to3DTextures() {
     var texArray = [];
     for (let s of this.series) {
-      var texData = flatten(s.images);
+      var texData = flattenArrayOfArrays(s.images);
       var texDataAsFloats = new Float32Array(texData.length);
       for (var i = 0; i < texData.length; ++i) {
         texDataAsFloats[i] = texData[i] /32768;
@@ -282,6 +360,10 @@ class Study {
       texArray.push(tex);
     }
     return texArray;
+  }
+
+  maskOverlap(activeMasks) {
+    return activeMasks.length + " active masks.";
   }
 
 }

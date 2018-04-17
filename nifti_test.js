@@ -80,7 +80,6 @@ function readNifti(data) {
 
 var displayWindow = 256;
 var displayLevel = 128;
-var showMask = false;
 
 let views = [];
 
@@ -95,18 +94,29 @@ function launch() {
   argmap.set('imageData', [headerImagePair[1]]);
 
   study = new Study(argmap);
+
   var maskHeaderImagePair = readNifti(maskNiftiData);
-  study.addMaskFromNifti(maskHeaderImagePair[0], maskHeaderImagePair[1]);
+  study.addMaskFromNifti(maskHeaderImagePair[0], maskHeaderImagePair[1], [0.5, 0.0, 0.0, .35]);
+  study.addDummyMask(0.25, [0.0, 0.5, 0.0, .35]);
 
   texturesArray = study.to3DTextures();
   maskTexturesArray = study.masksTo3DTextures();
+  seriesUL.innerHTML = masksUL.innerHTML = "";
+  for (let i = 0; i < study.series.length; ++i) {
+    let s = study.series[i];
+    seriesUL.innerHTML += "<li onclick=\"showSeries(" + i + ")\">" + s.name + "</li>";
+  }
+  for (let i = 0; i < study.masks.length; ++i) {
+    let m = study.masks[i];
+    masksUL.innerHTML += "<li onclick=\"showMask(" + i + ")\">" + m.name + "</li>";
+  }
 
   // create 2D views
   views.push(new View2D({scale: 1.0, xColor: [0, 1, 0, 1], yColor: [1, 0, 0, 1], normal: [0, 0, 1], U: [1, 0, 0], V: [0, 1, 0], study, displayWindow, displayLevel, width: 400, height: 400, x: 0, y: 0}));
   views.push(new View2D({xColor: [0, 0, 1, 1], yColor: [1, 0, 0, 1], normal: [0, 1, 0], U: [1, 0, 0], V: [0, 0, 1], study, displayWindow, displayLevel, width: 400, height: 400, x: 400, y: 400}));
   views.push(new View2D({xColor: [0, 0, 1, 1], yColor: [0, 1, 0, 1], normal: [1, 0, 0], U: [0, 1, 0], V: [0, 0, 1], study, displayWindow, displayLevel, width: 400, height: 400, x: 400, y: 0}));
 
-  views[0].showMask = false;
+ // views[0].showMask = false;
 
   //viewMain.setSeries(seriesIndex);
   //viewMain.setShowMask(false);
@@ -131,6 +141,46 @@ function launch() {
   requestAnimationFrame(render);
 }
 
+function setupMainDivHTML() {
+  let ans = 
+  "<head> \
+  <link rel=\"stylesheet\" type =\"text/css\" href=\"main.css\"/> \
+  </head> \
+  <body> \
+  <div id=\"container\"> \
+    <div id=\"mainPanel\"> \
+      <canvas id = \"c\" width=\"800\" height=\"800\"></canvas> \
+      <br/> \
+      <button onclick=\"resetViews()\">reset views</button> \
+    </div> \
+    <div id=\"infoPanel\"> \
+      <div class=\"seriesList\"> \
+        Series: \
+        <ul id=\"seriesUL\"> \
+          <li> Series 1 </li> \
+          <li> Series 2 </li> \
+        </ul> \
+      </div> \
+      <div class=\"masksList\"> \
+        Masks:  \
+        <ul id=\"masksUL\"> \
+          <li> Mask 1 </li> \
+          <li> Mask 2 </li> \
+        </ul> \
+      </div> \
+      <div id=\"maskInfo\"> \
+      </div> \
+    </div> \
+  </div> \
+  </body>"
+
+  return ans;
+}
+
+var mainDiv = document.getElementById("main");
+mainDiv.innerHTML = setupMainDivHTML();
+var seriesUL = document.getElementById("seriesUL");
+var masksUL = document.getElementById("masksUL");
 
 var gl = document.getElementById("c").getContext("webgl2");
 
@@ -227,7 +277,7 @@ function render(time) {
     twgl.setBuffersAndAttributes(gl, programInfo, drawBufferInfo);
     
     // set uniforms
-    drawUniforms.u_tex = texturesArray[view.seriesIndex];
+    drawUniforms.u_tex = texturesArray[seriesIndex];
     drawUniforms.u_viewportInfo = [view.x, view.y, view.width, view.height];
     drawUniforms.u_voxelDim = view.voxelDim;
 //    let w2v = m4.multiply(view.world2voxel, mainXform);
@@ -254,15 +304,17 @@ function render(time) {
     gl.enable (gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     //gl.blendEquationSeparate(gl.FUNC_ADD, gl.MIN);
-    
-    if (view.showMask) {
-
-      drawUniforms.u_world2voxel = study.masks[0].world2voxel;
-      drawUniforms.u_tex = maskTexturesArray[0];
-      drawUniforms.u_color = [0, 0, 1.0, .5];
-      drawUniforms.u_wl = [1, 0.5];
-      twgl.setUniforms(programInfo, drawUniforms);
-      twgl.drawBufferInfo(gl, drawBufferInfo, gl.TRIANGLES);
+    let maskColors = [[.35, 0, 0, .25],
+                      [0, .35, 0, .25]];
+    for (let i = 0; i < study.masks.length; i++) {
+      if (study.masks[i].show) {
+        drawUniforms.u_world2voxel = study.masks[i].world2voxel;
+        drawUniforms.u_tex = maskTexturesArray[i];
+        drawUniforms.u_color = study.masks[i].color;
+        drawUniforms.u_wl = [1, 0.5];
+        twgl.setUniforms(programInfo, drawUniforms);
+        twgl.drawBufferInfo(gl, drawBufferInfo, gl.TRIANGLES);
+      }
     }
 
     // hard code the three views with attendant colors
@@ -302,6 +354,9 @@ function checkLoaded() {
 var niftiData = null;
 var maskNiftiData = null;
 
+
+
+// Loading code:
 var stuffToLoad = 6; 
 loadURL("VS_main.glsl", function(xhttp) {VS = xhttp.responseText; checkLoaded();});
 loadURL("FS_main.glsl", function(xhttp) {FS = xhttp.responseText; checkLoaded();});
@@ -311,8 +366,6 @@ loadFile("r_TCGA-30-1-FLAIR-1-M.nii.gz", function(result) {niftiData = result; c
 loadFile("mask_wholetumor_3d.nii.gz", function(result) {maskNiftiData = result; checkLoaded();});
 
 // Event handlers below
-
-
 
 // mouse wheel
 (function() {
