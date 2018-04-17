@@ -4,8 +4,6 @@ twgl.setDefaults({attribPrefix: "a_"});
 
 var programInfo, VS, FS, VS_rotate, FS_rotate, programInfo_rotate;
 
-
-
 function loadURL(url, cb) {
   var xhttp;
   xhttp = new XMLHttpRequest();
@@ -96,8 +94,8 @@ function launch() {
   study = new Study(argmap);
 
   var maskHeaderImagePair = readNifti(maskNiftiData);
-  study.addMaskFromNifti(maskHeaderImagePair[0], maskHeaderImagePair[1], [0.5, 0.0, 0.0, .35]);
-  study.addDummyMask(0.25, [0.0, 0.5, 0.0, .35]);
+  study.addMaskFromNifti(maskHeaderImagePair[0], maskHeaderImagePair[1], [.5, 0.0, 0.0, .35]);
+  study.addDummyMask(0.25, [0.0, .5, 0.0, .35]);
 
   texturesArray = study.to3DTextures();
   maskTexturesArray = study.masksTo3DTextures();
@@ -108,13 +106,13 @@ function launch() {
   }
   for (let i = 0; i < study.masks.length; ++i) {
     let m = study.masks[i];
-    masksUL.innerHTML += "<li onclick=\"showMask(" + i + ")\">" + m.name + "</li>";
+    masksUL.innerHTML += "<li id=\"mask-" + i + "-li\" onclick=\"showMask(" + i + ")\">" + m.name + "</li>";
   }
 
   // create 2D views
-  views.push(new View2D({scale: 1.0, xColor: [0, 1, 0, 1], yColor: [1, 0, 0, 1], normal: [0, 0, 1], U: [1, 0, 0], V: [0, 1, 0], study, displayWindow, displayLevel, width: 400, height: 400, x: 0, y: 0}));
-  views.push(new View2D({xColor: [0, 0, 1, 1], yColor: [1, 0, 0, 1], normal: [0, 1, 0], U: [1, 0, 0], V: [0, 0, 1], study, displayWindow, displayLevel, width: 400, height: 400, x: 400, y: 400}));
-  views.push(new View2D({xColor: [0, 0, 1, 1], yColor: [0, 1, 0, 1], normal: [1, 0, 0], U: [0, 1, 0], V: [0, 0, 1], study, displayWindow, displayLevel, width: 400, height: 400, x: 400, y: 0}));
+  views.push(new View2D({scale: .5, xColor: [0, 1, 0, 1], yColor: [1, 0, 0, 1], normal: [0, 0, 1], U: [1, 0, 0], V: [0, 1, 0], study, displayWindow, displayLevel, width: 400, height: 400, x: 0, y: 0}));
+  views.push(new View2D({scale: .5, xColor: [0, 0, 1, 1], yColor: [1, 0, 0, 1], normal: [0, 1, 0], U: [1, 0, 0], V: [0, 0, 1], study, displayWindow, displayLevel, width: 400, height: 400, x: 400, y: 400}));
+  views.push(new View2D({scale: .5, xColor: [0, 0, 1, 1], yColor: [0, 1, 0, 1], normal: [1, 0, 0], U: [0, 1, 0], V: [0, 0, 1], study, displayWindow, displayLevel, width: 400, height: 400, x: 400, y: 0}));
 
  // views[0].showMask = false;
 

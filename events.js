@@ -197,13 +197,35 @@ function resetViews() {
   }
 }
 
+function toCSSColor(c) {
+  let b = c.slice();
+  for (let i = 0; i < 3; i++) {
+    if (b[i] > 0) b[i] = .9;
+    else b[i] = .4;
+  }
+
+  let ans = "rgb(" + Math.floor(b[0]*255) + ", " + Math.floor(b[1]*255) + ", " + Math.floor(b[2]*255) + ")";
+
+  return ans;
+}
+
 function showMask(id) {
   let maskInfo = document.getElementById("maskInfo");
+  let maskLI = document.getElementById("mask-"+id+"-li");
+
   let m = study.masks[id];
-  m.show = m.show ? false : true;
+  if (m.show) {
+    m.show = false;
+    maskLI.style.background = "";
+  }
+  else {
+    m.show = true;
+    maskLI.style.backgroundColor = toCSSColor(m.color);
+  }
   let activeMasks = [];
   for (let msk of study.masks) {
     if (msk.show) activeMasks.push(msk);
+
   }
   if (activeMasks.length == 0) {
     maskInfo.innerHTML = "";
@@ -213,12 +235,13 @@ function showMask(id) {
   for (let am of activeMasks) {
     maskInfo.innerHTML += 
   "<ul> \
-    <li>Volume: " + am.maskedVoxels * am.voxelVolume + "cc</li> \
+    <li>"+am.name.substring(0, 10)+": " + Math.floor(am.maskedVoxels * am.voxelVolume) + " cc</li> \
   </ul>";
   }
   if (activeMasks.length == 1) return;
   maskInfo.innerHTML += 
-  "<ul> \
+  "<br/> \
+  <ul> \
     <li>" + study.maskOverlap(activeMasks) + "</li> \
   </ul>";
 
