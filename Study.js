@@ -62,6 +62,7 @@ class Mask extends Series {
     this.totalVoxels = this.width * this.height * this.depth;
     this.maskedVoxels = this.countPositiveVoxels();
     this.show = false;
+    this.id = options.id;
   }
 
   countPositiveVoxels() {
@@ -96,6 +97,8 @@ class Study {
     if (argmap.get('type') == 'nifti') {
       this.initFromNiftis(argmap);
     }
+    this.numMasks = 0;
+    this.maskOverlapCache = new Map();
   }
 
   initFromNiftis(argmap) {
@@ -223,8 +226,8 @@ class Study {
 
     // now push mask with those characteristics
     
-    this.masks.push(new Mask({units: "mm", color: c, width: w, height: h, depth: d, name: "dummy mask", imgData: maskData, voxelWidth: bboxDim[0], voxelHeight: bboxDim[1], voxelDepth: bboxDim[2], voxel2world: v2w}));
-
+    this.masks.push(new Mask({id: this.numMasks, units: "mm", color: c, width: w, height: h, depth: d, name: "dummy mask", imgData: maskData, voxelWidth: bboxDim[0], voxelHeight: bboxDim[1], voxelDepth: bboxDim[2], voxel2world: v2w}));
+    this.numMasks++;
   }
 
   addMaskFromNifti(maskHeader, maskData, c) {
@@ -281,7 +284,8 @@ class Study {
     let unitsString = maskHeader.getUnitsCodeString(maskHeader.xyzt_units & 7);
     if (unitsString == "millimeters") unitsString = "mm";
 
-    this.masks.push(new Mask({units: unitsString, color: c, width: w, height: h, depth: d, name: maskHeader.description, imgData: imageDataAsFloats, voxelWidth: vWidth, voxelHeight: vHeight, voxelDepth: vDepth, voxel2world: xform}));
+    this.masks.push(new Mask({id: this.numMasks, units: unitsString, color: c, width: w, height: h, depth: d, name: maskHeader.description, imgData: imageDataAsFloats, voxelWidth: vWidth, voxelHeight: vHeight, voxelDepth: vDepth, voxel2world: xform}));
+    this.numMasks++;
   }
 
   masksTo3DTextures() {
@@ -416,46 +420,64 @@ class Study {
   }
 
   maskOverlap(activeMasks) {
-    let bboxDim = this.bbox.dim();
-    
-    // find smallest mask by volume
-    let minVol = 999999999999;
-    let totalVolume = 0;
-    let sm; // smallest mask
+    let amIDs = [];
     for (let m of activeMasks) {
-      let vol = m.volumeInCC(); 
-      totalVolume += vol;
-      if (vol < minVol) {
-        minVol = vol;
-        sm = m; 
-      }
+      amIDs.push(m.id);
     }
+    amIDs.sort();
+    let maskOverlapCacheKey = "";
+    for (let id of amIDs) 
+      maskOverlapCacheKey += id;
+    let overlapInfo;
 
-    let nov = 0; // number of voxels in every mask
+    console.log("Mask overlap cache key: " + maskOverlapCacheKey);
 
-    for (let k = 0; k < sm.depth; ++k) {
-      for (let j = 0; j < sm.height; ++j) {
-        for (let i = 0; i < sm.width; ++i) {
-          let wc = m4.transformPoint(sm.voxel2world, [i, j, k]);
-          let inEveryMask = true;
-          for (let m of activeMasks) {
-            if (m == sm) {
-              if (m.imgData[k*m.width*m.height+j*m.width+i] < 0) {
+    if (this.maskOverlapCache.has(maskOverlapCacheKey)) {
+      overlapInfo = this.maskOverlapCache.get(maskOverlapCacheKey);
+    }
+    else {
+      let bboxDim = this.bbox.dim();
+      
+      // find smallest mask by volume
+      let minVol = 999999999999;
+      let totalVol = 0;
+      let sm; // smallest mask
+      for (let m of activeMasks) {
+        let vol = m.volumeInCC(); 
+        totalVol += vol;
+        if (vol < minVol) {
+          minVol = vol;
+          sm = m; 
+        }
+      }
+
+      let nov = 0; // number of voxels overlapping all masks
+
+      for (let k = 0; k < sm.depth; ++k) {
+        for (let j = 0; j < sm.height; ++j) {
+          for (let i = 0; i < sm.width; ++i) {
+            let wc = m4.transformPoint(sm.voxel2world, [i, j, k]);
+            let inEveryMask = true;
+            for (let m of activeMasks) {
+              if (m == sm) {
+                if (m.imgData[k*m.width*m.height+j*m.width+i] < 0) {
+                  inEveryMask = false;
+                  break;
+                }
+              }
+              if (!m.contains(wc)) {
                 inEveryMask = false;
                 break;
               }
             }
-            if (!m.contains(wc)) {
-              inEveryMask = false;
-              break;
-            }
+            if (inEveryMask) nov++;
           }
-          if (inEveryMask) nov++;
         }
       }
+      overlapInfo = {overlapVolume: nov*sm.voxelVolumeInCC(), totalVolume: totalVol};
+      this.maskOverlapCache.set(maskOverlapCacheKey,  overlapInfo);
     }
-    let overlapVolume = nov*sm.voxelVolumeInCC();
-    return "Overlap: " + (100 * overlapVolume / totalVolume).toFixed(2) + "% / " + Math.floor(overlapVolume) + " cc"; // activeMasks.length + " active masks.";
+    return "Overlap: " + (100 * overlapInfo.overlapVolume / overlapInfo.totalVolume).toFixed(2) + "% / " + Math.floor(overlapInfo.overlapVolume) + " cc"; 
   }
 
 }

@@ -3,6 +3,14 @@
 twgl.setDefaults({attribPrefix: "a_"});
 
 var programInfo, VS, FS, VS_rotate, FS_rotate, programInfo_rotate;
+var texturesArray = [];
+var maskTexturesArray = [];
+var drawUniforms = {};
+
+var displayWindow = 256;
+var displayLevel = 128;
+
+let views = [];
 
 function loadURL(url, cb) {
   var xhttp;
@@ -15,10 +23,6 @@ function loadURL(url, cb) {
   xhttp.open("GET", url, true);
   xhttp.send();
 }
-
-var texturesArray = [];
-var maskTexturesArray = [];
-var drawUniforms = {};
 
 function loadFile(filename, cb) {
   var oReq = new XMLHttpRequest();
@@ -38,19 +42,6 @@ function loadFile(filename, cb) {
   }
   oReq.send();
 }
-/*
-class ImageVolume {
-  constructor(nHeader, nImage) {
-    this.width = nHeader.dims[1];
-    this.height = nHeader.dims[2];
-    this.numSlices = nHeader.dims[3];
-    this.images = [];
-    for (var i = 0; i < this.numSlices; i++) {
-      var sliceSize = this.width * this.height * (nHeader.numBitsPerVoxel/8);
-      this.images.push(new Int16Array(nImage.slice(i*sliceSize, (i+1)*sliceSize)));
-    }
-  }
-}*/
 
 function readNifti(data) {
   var niftiHeader = null, niftiImage = null, niftiExt = null;
@@ -75,11 +66,6 @@ function readNifti(data) {
   }
   return [niftiHeader, niftiImage];
 }
-
-var displayWindow = 256;
-var displayLevel = 128;
-
-let views = [];
 
 function launch() {
   // called after all image files and shaders are loaded
@@ -118,24 +104,6 @@ function launch() {
 
   //viewMain.setSeries(seriesIndex);
   //viewMain.setShowMask(false);
-/*
-  drawUniforms = {
-    u_resolution: [gl.canvas.width, gl.canvas.height],
-    u_tex: texturesArray[seriesIndex],
-    u_wl: [displayWindow, displayLevel],
-    u_slice: sliceIndex / study.series[seriesIndex].depth,
-    u_maskAlpha: 0.0,
-  };
-*/
-/*
-  if (study.mask.has(seriesIndex) && showMask) {
-    drawUniforms.u_maskTex = maskTexturesArray[seriesIndex];
-  }
-  else {
-    drawUniforms.u_maskTex = noMaskTexture;
-  }
-*/
-
   requestAnimationFrame(render);
 }
 
@@ -208,7 +176,17 @@ var drawArrays_crosshair_Y = {
   position: [0, -1, 0, 0, 1, 0],
 } 
 
-// Dummy 1x1x1 mask texture, transparent
+var drawBufferInfo = twgl.createBufferInfoFromArrays(gl, drawArrays);
+var drawBufferInfo_crosshair_X = twgl.createBufferInfoFromArrays(gl, drawArrays_crosshair_X);
+var drawBufferInfo_crosshair_Y = twgl.createBufferInfoFromArrays(gl, drawArrays_crosshair_Y);
+
+var mainXform = m4.identity();
+var center = [0, 0, 0];
+
+var niftiData = null;
+var maskNiftiData = null;
+
+/*
 var noMaskTexture = twgl.createTexture(gl, {
   target: gl.TEXTURE_3D,
   min: gl.NEAREST,
@@ -221,13 +199,7 @@ var noMaskTexture = twgl.createTexture(gl, {
   type: gl.SHORT,
   src: [0],
 });
-
-var drawBufferInfo = twgl.createBufferInfoFromArrays(gl, drawArrays);
-var drawBufferInfo_crosshair_X = twgl.createBufferInfoFromArrays(gl, drawArrays_crosshair_X);
-var drawBufferInfo_crosshair_Y = twgl.createBufferInfoFromArrays(gl, drawArrays_crosshair_Y);
-
-var mainXform = m4.identity();
-var center = [0, 0, 0];
+*/
 
 function render(time) {
   time *= 0.0001;
@@ -239,18 +211,7 @@ function render(time) {
   // console.log(drawUniforms.u_xform);
   // apply mask, maybe.
   
-/*
-  if (study.mask.has(seriesIndex) && showMask) {
-    drawUniforms.u_maskTex = maskTexturesArray[seriesIndex];
-    drawUniforms.u_maskAlpha = 1.0;
-  }
-  else {
-    drawUniforms.u_maskTex = noMaskTexture;
-    drawUniforms.u_maskAlpha = 0.0;
-  }
 
-  drawUniforms.u_wl = [displayWindow /32768, displayLevel/32768];
-*/  
   // twgl.bindFramebufferInfo(gl, updateFBI);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   twgl.resizeCanvasToDisplaySize(gl.canvas);
@@ -278,8 +239,7 @@ function render(time) {
     drawUniforms.u_tex = texturesArray[seriesIndex];
     drawUniforms.u_viewportInfo = [view.x, view.y, view.width, view.height];
     drawUniforms.u_voxelDim = view.voxelDim;
-//    let w2v = m4.multiply(view.world2voxel, mainXform);
-//    drawUniforms.u_world2voxel = m4.multiply(w2v, view.xform);
+
     drawUniforms.u_world2voxel = view.world2voxel;
     drawUniforms.u_center = center;
     drawUniforms.u_normal = view.currentNormal;
@@ -348,10 +308,6 @@ function checkLoaded() {
   console.log(stuffToLoad);
   if (stuffToLoad == 0) launch();
 }
-
-var niftiData = null;
-var maskNiftiData = null;
-
 
 
 // Loading code:
