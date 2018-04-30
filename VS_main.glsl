@@ -23,14 +23,21 @@ in vec2 a_texcoord;
 out vec3 v_texcoord;
 
 void main() {
+	// a_position in range [-1, -1] x [1, 1]
 	gl_Position = a_position;
 
+	// u_viewportInfo.zw is width and height of viewport 
 	vec4 texCoord = vec4(a_position.xy * u_viewportInfo.zw/2.0, 0.0, 1.0);
 	
+	// scale according to magnification
 	vec4 U = u_scale * vec4(u_U, 0);
 	vec4 V = u_scale * vec4(u_V, 0);
+
+	// take care of MPR
 	float dist = dot(u_center, u_normal);
 	vec4 C = vec4(vec3(dist) * u_normal, 1.0);
+
+	// texCoord will be in voxel coordinates
 	texCoord = u_world2voxel * (C + vec4(texCoord.x) * U + vec4(texCoord.y) * V);
 
 	// now texCoord is in voxel coordinates -- scale to [0, 1]^3

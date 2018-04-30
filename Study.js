@@ -62,6 +62,7 @@ class Mask extends Series {
     this.totalVoxels = this.width * this.height * this.depth;
     this.maskedVoxels = this.countPositiveVoxels();
     this.show = false;
+    this.voxelDim = [this.width, this.height, this.depth];
     this.id = options.id;
   }
 
@@ -191,10 +192,15 @@ class Study {
 
   }
 
-  addDummyMask(radius, c) {
+  addDummyMaskBox(llc, urc, c) {
+    let box = new BBox(llc, urc);
+    this.addDummyMask(function(point) {return box.contains(point);}, c);
+  }
+
+  addDummyMask(condition, c) {
     let w, h, d, idx;
-    w = h = 256;
-    d = 50;
+    //let box = new BBox(llc, urc);
+    w = h = d = 256;
     let maskData = new Float32Array(w*h*d);
     let x, y, z;
     for (let k = 0; k < d; k++) {
@@ -204,7 +210,7 @@ class Study {
         for (let i = 0; i < w; i++) {
           x = 2 * (i / w) -1;
           idx = k*w*h + j*w + i;
-          if (x*x + y*y + z*z < radius) 
+          if (condition([x,y,z])) 
             maskData[idx] = 1;
           else 
             maskData[idx] = 0;
@@ -213,21 +219,34 @@ class Study {
     }
     // now compute matrix to scale mask to bounding box of study
     let bboxDim = this.bbox.dim();
-    let bboxDimCopy = bboxDim.slice();
-    
-    bboxDim[0] /= w;
-    bboxDim[1] /= h;
-    bboxDim[2] /= d;
-    let scaleMatrix = m4.scaling(bboxDim);
-    let transMatrix = m4.translation([-w/2, -h/2, -d/2]);
-    let v2w = m4.multiply(scaleMatrix, transMatrix);
+    let v2w = this.scaleUnitMaskToBBox([w, h, d], bboxDim);
     //m4.translate(v2w, [-bboxDimCopy[0]/2, -bboxDimCopy[1]/2, -bboxDimCopy[2]/2], v2w);
     //m4.setTranslation(v2w, [-450, -120, -75], v2w);
 
     // now push mask with those characteristics
     
-    this.masks.push(new Mask({id: this.numMasks, units: "mm", color: c, width: w, height: h, depth: d, name: "dummy mask", imgData: maskData, voxelWidth: bboxDim[0], voxelHeight: bboxDim[1], voxelDepth: bboxDim[2], voxel2world: v2w}));
+    this.masks.push(new Mask({id: this.numMasks, units: "mm", color: c, width: w, height: h, depth: d, name: "dummy mask", imgData: maskData, voxelWidth: bboxDim[0]/w, voxelHeight: bboxDim[1]/h, voxelDepth: bboxDim[2]/d, voxel2world: v2w}));
     this.numMasks++;
+  }
+
+  addDummyMaskSphere(radius, c) {
+    this.addDummyMask(function(point) {return point[0]*point[0]+point[1]*point[1]+point[2]*point[2] < radius;}, c);
+  }
+
+  scaleUnitMaskToBBox(maskDim, bboxDim) {
+    //let bbdc = bboxDim.slice();
+    let w = maskDim[0];
+    let h = maskDim[1];
+    let d = maskDim[2];
+    //bboxDim[0] /= w;
+    //bboxDim[1] /= h;
+    //bboxDim[2] /= d;
+    //let scaleMatrix = m4.scaling(bboxDim);
+    //let transMatrix = m4.translation([-w/2, -h/2, -d/2]);
+    //let v2w = m4.multiply(scaleMatrix, transMatrix);
+    let w2v = m4.scaling([w/bboxDim[0], h/bboxDim[1], d/bboxDim[2]]);
+    w2v = m4.multiply(m4.translation([w/2, h/2, d/2]), w2v);
+    return m4.inverse(w2v);
   }
 
   addMaskFromNifti(maskHeader, maskData, c) {
@@ -474,6 +493,9 @@ class Study {
           }
         }
       }
+
+      // VOLUME STUFF IS SCREWED UP
+
       overlapInfo = {overlapVolume: nov*sm.voxelVolumeInCC(), totalVolume: totalVol};
       this.maskOverlapCache.set(maskOverlapCacheKey,  overlapInfo);
     }

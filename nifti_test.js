@@ -81,7 +81,8 @@ function launch() {
 
   var maskHeaderImagePair = readNifti(maskNiftiData);
   study.addMaskFromNifti(maskHeaderImagePair[0], maskHeaderImagePair[1], [.5, 0.0, 0.0, .35]);
-  study.addDummyMask(0.25, [0.0, .5, 0.0, .35]);
+  study.addDummyMaskSphere(1.0, [0.0, .5, 0.0, .35]);
+  study.addDummyMaskBox([-1, -1, -1], [1, 1, 1], [0, .5, 0.5, .35]);
 
   texturesArray = study.to3DTextures();
   maskTexturesArray = study.masksTo3DTextures();
@@ -267,6 +268,7 @@ function render(time) {
     for (let i = 0; i < study.masks.length; i++) {
       if (study.masks[i].show) {
         drawUniforms.u_world2voxel = study.masks[i].world2voxel;
+        drawUniforms.u_voxelDim = study.masks[i].voxelDim;
         drawUniforms.u_tex = maskTexturesArray[i];
         drawUniforms.u_color = study.masks[i].color;
         drawUniforms.u_wl = [1, 0.5];
