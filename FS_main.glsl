@@ -1,12 +1,14 @@
 #version 300 es
 precision highp float;
 precision highp int;
+
+precision highp usampler3D;
 precision highp isampler3D;
 precision highp sampler3D;
 
 uniform sampler3D u_tex;
+uniform usampler3D u_maskTex;
 
-uniform isampler3D u_maskTex;
 uniform float u_maskAlpha;
 uniform vec4 u_color;
 uniform vec4 u_viewportInfo;
@@ -14,10 +16,14 @@ uniform vec3 u_voxelDim;
 uniform vec2 u_screenDim;
 
 uniform vec2 u_wl;
+uniform uint u_activeMasks;
 
 uniform mat4 u_world2voxel;
+uniform mat4 u_maskWorld2voxel;
 
 in vec3 v_texcoord;
+in vec3 v_maskTexcoord;
+
 out vec4 color;
 
 vec4 clampToBorder(vec4 c, vec3 uvw) {
@@ -41,11 +47,40 @@ void main() {
 	//uvw.xy = (gl_FragCoord.xy - u_viewportInfo.xy) / u_viewportInfo.zw;
 
 	vec4 rawData = texture(u_tex, v_texcoord);
+	uvec4 maskData = texture(u_maskTex, v_maskTexcoord);
+	// add |= for mask selection
+	maskData.x &= u_activeMasks;
 
     float scale = 1.0 / u_wl.x;
     float offset = u_wl.y - (u_wl.x / 2.0);
 	float data = (float(rawData.x) - offset) * scale;
-	
-	vec4 dataColor = clamp(data*u_color, 0.0, 1.0);
+
+	vec4 blendColor;
+	if (maskData.x == 0u) {
+		blendColor = vec4(1.0);
+	}
+	else if (maskData.x == 1u) {
+		blendColor = vec4(1.0, 0.0, 0.0, 1.0);
+	}
+	else if (maskData.x == 2u) {
+		blendColor = vec4(0.0, 1.0, 0.0, 1.0);
+	}
+	else if (maskData.x == 3u) {
+		blendColor = vec4(1.0, 1.0, 0.0, 1.0);
+	}
+	else if (maskData.x == 4u) {
+		blendColor = vec4(0.0, 0.0, 1.0, 1.0);
+	}
+	else if (maskData.x == 5u) {
+		blendColor = vec4(1.0, 0.0, 1.0, 1.0);
+	}
+	else if (maskData.x == 6u) {
+		blendColor = vec4(0.0, 1.0, 1.0, 1.0);
+	}
+	else if (maskData.x == 7u) {
+		blendColor = vec4(.3, .7, .3, 1.0);
+	}
+
+	vec4 dataColor = clamp(data*blendColor, 0.0, 1.0);
 	color = clampToBorder(dataColor, v_texcoord);
 }

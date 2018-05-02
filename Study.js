@@ -99,7 +99,13 @@ class Study {
       this.initFromNiftis(argmap);
     }
     this.numMasks = 0;
+    this.activeMasks = new Uint32Array(1);
+    this.activeMasks[0] = 0;
     this.maskOverlapCache = new Map();
+  }
+
+  maskVoxelVolumeInCC() {
+    return this.maskVoxelWidth * this.maskVoxelHeight * this.maskVoxelDepth * .001;
   }
 
   initFromNiftis(argmap) {
@@ -192,10 +198,7 @@ class Study {
 
   }
 
-  addDummyMaskBox(llc, urc, c) {
-    let box = new BBox(llc, urc);
-    this.addDummyMask(function(point) {return box.contains(point);}, c);
-  }
+
 
   addDummyMask(condition, c) {
     let w, h, d, idx;
@@ -227,6 +230,11 @@ class Study {
     
     this.masks.push(new Mask({id: this.numMasks, units: "mm", color: c, width: w, height: h, depth: d, name: "dummy mask", imgData: maskData, voxelWidth: bboxDim[0]/w, voxelHeight: bboxDim[1]/h, voxelDepth: bboxDim[2]/d, voxel2world: v2w}));
     this.numMasks++;
+  }
+
+  addDummyMaskBox(llc, urc, c) {
+    let box = new BBox(llc, urc);
+    this.addDummyMask(function(point) {return box.contains(point);}, c);
   }
 
   addDummyMaskSphere(radius, c) {
@@ -305,6 +313,51 @@ class Study {
 
     this.masks.push(new Mask({id: this.numMasks, units: unitsString, color: c, width: w, height: h, depth: d, name: maskHeader.description, imgData: imageDataAsFloats, voxelWidth: vWidth, voxelHeight: vHeight, voxelDepth: vDepth, voxel2world: xform}));
     this.numMasks++;
+  }
+
+  masksToOne3DTexture() {
+    let w, h, d;
+    let x, y, z;
+    let llc = this.bbox.llc;
+    let bbd = this.bbox.dim();
+    w = h = d = 256;
+    this.maskVoxelDim = [w, h, d];
+    let w2v = m4.scaling([w/bbd[0], h/bbd[1], d/bbd[2]]);
+    this.maskWorld2voxel = m4.multiply(m4.translation([w/2, h/2, d/2]), w2v);
+    
+    this.maskTexData = new Uint32Array(w*h*d);
+
+    this.maskVoxelWidth = bbd[0] / w;
+    this.maskVoxelHeight = bbd[1] / h;
+    this.maskVoxelDepth = bbd[2] / d;
+
+    for (let k = 0; k < d; ++k) {
+      z = llc[2] + (k*bbd[2]/d);
+      for (let j = 0; j < h; ++j) {
+        y = llc[1] + (j*bbd[1]/h);
+        for (let i = 0; i < w; ++i) {
+          x = llc[0] + (i*bbd[0]/w);
+          let idx = k*w*h+j*w+i;
+          this.maskTexData[idx] = 0;
+          for (let midx = 0; midx < this.masks.length; ++midx) {
+            let m = this.masks[midx];
+            if (m.contains([x, y, z]))
+              this.maskTexData[idx] |= (1 << midx);
+          }
+        }
+      }
+    }
+    return twgl.createTexture(gl, {
+        target: gl.TEXTURE_3D,
+        minMag: gl.NEAREST,
+        width: w,
+        height: h,
+        depth: d,
+        internalFormat: gl.R32UI,
+        format: gl.RED_INTEGER,
+        type: gl.UNSIGNED_INT,
+        src: this.maskTexData,
+      });
   }
 
   masksTo3DTextures() {
@@ -440,8 +493,11 @@ class Study {
 
   maskOverlap(activeMasks) {
     let amIDs = [];
+    let selectedMasksBitfield = new Uint32Array(1);
+    selectedMasksBitfield[0] = 0;
     for (let m of activeMasks) {
       amIDs.push(m.id);
+      selectedMasksBitfield[0] |= (1 << m.id);
     }
     amIDs.sort();
     let maskOverlapCacheKey = "";
@@ -455,6 +511,7 @@ class Study {
       overlapInfo = this.maskOverlapCache.get(maskOverlapCacheKey);
     }
     else {
+      /*
       let bboxDim = this.bbox.dim();
       
       // find smallest mask by volume
@@ -493,10 +550,21 @@ class Study {
           }
         }
       }
+      */
 
-      // VOLUME STUFF IS SCREWED UP
+      // VOLUME STUFF ABOVE IS SCREWED UP
+      let voxelsInAnyMask = 0;
+      let voxelsInSelectedMasks = 0;
+      for (let idx = 0; idx < this.maskVoxelDim[0]*this.maskVoxelDim[1]*this.maskVoxelDim[2]; ++idx) {
+        let data = this.maskTexData[idx];
+        if (data > 0) {
+          voxelsInAnyMask++;
+          if (data == selectedMasksBitfield[0])
+            voxelsInSelectedMasks++;
+        }
+      }
 
-      overlapInfo = {overlapVolume: nov*sm.voxelVolumeInCC(), totalVolume: totalVol};
+      overlapInfo = {overlapVolume: voxelsInSelectedMasks*this.maskVoxelVolumeInCC(), totalVolume: voxelsInAnyMask*this.maskVoxelVolumeInCC()};
       this.maskOverlapCache.set(maskOverlapCacheKey,  overlapInfo);
     }
     return "Overlap: " + (100 * overlapInfo.overlapVolume / overlapInfo.totalVolume).toFixed(2) + "% / " + Math.floor(overlapInfo.overlapVolume) + " cc"; 

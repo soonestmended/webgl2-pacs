@@ -5,6 +5,9 @@ twgl.setDefaults({attribPrefix: "a_"});
 var programInfo, VS, FS, VS_rotate, FS_rotate, programInfo_rotate;
 var texturesArray = [];
 var maskTexturesArray = [];
+
+var maskTexture;
+
 var drawUniforms = {};
 
 var displayWindow = 256;
@@ -81,11 +84,13 @@ function launch() {
 
   var maskHeaderImagePair = readNifti(maskNiftiData);
   study.addMaskFromNifti(maskHeaderImagePair[0], maskHeaderImagePair[1], [.5, 0.0, 0.0, .35]);
-  study.addDummyMaskSphere(1.0, [0.0, .5, 0.0, .35]);
-  study.addDummyMaskBox([-1, -1, -1], [1, 1, 1], [0, .5, 0.5, .35]);
+  study.addDummyMaskSphere(.25, [0.0, .5, 0.0, .35]);
+  study.addDummyMaskBox([-.5, -.5, -.5], [.5, .5, .5], [0, .5, 0.5, .35]);
 
   texturesArray = study.to3DTextures();
   maskTexturesArray = study.masksTo3DTextures();
+  maskTexture = study.masksToOne3DTexture();
+
   seriesUL.innerHTML = masksUL.innerHTML = "";
   for (let i = 0; i < study.series.length; ++i) {
     let s = study.series[i];
@@ -238,6 +243,12 @@ function render(time) {
     
     // set uniforms
     drawUniforms.u_tex = texturesArray[seriesIndex];
+
+    drawUniforms.u_maskTex = maskTexture;
+    drawUniforms.u_maskVoxelDim = study.maskVoxelDim;
+    drawUniforms.u_maskWorld2voxel = study.maskWorld2voxel;
+    drawUniforms.u_activeMasks = study.activeMasks[0];
+
     drawUniforms.u_viewportInfo = [view.x, view.y, view.width, view.height];
     drawUniforms.u_voxelDim = view.voxelDim;
 
@@ -259,7 +270,7 @@ function render(time) {
     twgl.drawBufferInfo(gl, drawBufferInfo, gl.TRIANGLES);
 
     // draw zero or more masks
-   
+   /*
     gl.enable (gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     //gl.blendEquationSeparate(gl.FUNC_ADD, gl.MIN);
@@ -276,6 +287,7 @@ function render(time) {
         twgl.drawBufferInfo(gl, drawBufferInfo, gl.TRIANGLES);
       }
     }
+*/
 
     // hard code the three views with attendant colors
     gl.useProgram(programInfo_rotate.program);

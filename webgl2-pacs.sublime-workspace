@@ -107,6 +107,15 @@
 	},
 	"buffers":
 	[
+		{
+			"contents": "C5-C6: Status post ACDF. Broad-based posterior osteophyte with mild spinal canal stenosis. Mild right\nand mild to moderate left neural foraminal stenosis secondary to facet and uncovertebral arthropathy,\nstable.\n\nC6-C7: Broad-based posterior disc-osteophyte complex with moderately severe spinal canal stenosis.\nModerate right and moderately severe left neural foraminal stenosis secondary to facet and\nuncovertebral arthropathy.\n\nC7-T1: No spinal canal stenosis or right neural foraminal stenosis. Moderate left neural foraminal\nstenosis secondary to facet and uncovertebral arthropathy.\n\nVisualized brain: Normal.\n\nSoft tissues: Normal.",
+			"settings":
+			{
+				"buffer_size": 638,
+				"line_ending": "Windows",
+				"name": "C5-C6: Status post ACDF. Broad-based posterior ost"
+			}
+		}
 	],
 	"build_system": "",
 	"build_system_choices":
@@ -363,8 +372,37 @@
 	"groups":
 	[
 		{
+			"selected": 0,
 			"sheets":
 			[
+				{
+					"buffer": 0,
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 638,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								638
+							]
+						],
+						"settings":
+						{
+							"auto_name": "C5-C6: Status post ACDF. Broad-based posterior ost",
+							"syntax": "Packages/Text/Plain text.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				}
 			]
 		}
 	],

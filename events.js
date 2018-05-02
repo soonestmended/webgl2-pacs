@@ -214,10 +214,12 @@ function showMask(id) {
   let m = study.masks[id];
   if (m.show) {
     m.show = false;
+    study.activeMasks[0] &= ~(1 << id);
     maskLI.style.background = "";
   }
   else {
     m.show = true;
+    study.activeMasks[0] |= (1 << id);
     maskLI.style.backgroundColor = toCSSColor(m.color);
   }
   let activeMasks = [];
