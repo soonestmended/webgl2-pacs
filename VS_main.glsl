@@ -42,6 +42,7 @@ void main() {
 
 	// texCoord will be in voxel coordinates
 	vec4 maskTexcoord = u_maskWorld2voxel * (C + vec4(texCoord.x) * U + vec4(texCoord.y) * V);
+
 	texCoord = u_world2voxel * (C + vec4(texCoord.x) * U + vec4(texCoord.y) * V);
 
 

@@ -10,13 +10,14 @@ uniform sampler3D u_tex;
 uniform usampler3D u_maskTex;
 
 uniform float u_maskAlpha;
-uniform vec4 u_color;
+uniform vec4 u_colors[32];
 uniform vec4 u_viewportInfo;
 uniform vec3 u_voxelDim;
 uniform vec2 u_screenDim;
 
 uniform vec2 u_wl;
 uniform uint u_activeMasks;
+uniform int u_numMasks;
 
 uniform mat4 u_world2voxel;
 uniform mat4 u_maskWorld2voxel;
@@ -55,30 +56,20 @@ void main() {
     float offset = u_wl.y - (u_wl.x / 2.0);
 	float data = (float(rawData.x) - offset) * scale;
 
-	vec4 blendColor;
-	if (maskData.x == 0u) {
-		blendColor = vec4(1.0);
-	}
-	else if (maskData.x == 1u) {
-		blendColor = vec4(1.0, 0.0, 0.0, 1.0);
-	}
-	else if (maskData.x == 2u) {
-		blendColor = vec4(0.0, 1.0, 0.0, 1.0);
-	}
-	else if (maskData.x == 3u) {
-		blendColor = vec4(1.0, 1.0, 0.0, 1.0);
-	}
-	else if (maskData.x == 4u) {
-		blendColor = vec4(0.0, 0.0, 1.0, 1.0);
-	}
-	else if (maskData.x == 5u) {
-		blendColor = vec4(1.0, 0.0, 1.0, 1.0);
-	}
-	else if (maskData.x == 6u) {
-		blendColor = vec4(0.0, 1.0, 1.0, 1.0);
-	}
-	else if (maskData.x == 7u) {
-		blendColor = vec4(.3, .7, .3, 1.0);
+	vec4 blendColor = vec4(0.0); 
+	int numActiveMasks = 0;
+	if (u_numMasks > 0) { 
+		//blendColor = vec4(0.0);
+		for (int i = 0; i < u_numMasks; ++i) {
+			if ((maskData.x & (1u << i)) > 0u) {
+				blendColor += u_colors[i];
+				numActiveMasks++;
+			}
+		}
+		if (numActiveMasks > 0) 
+			blendColor /= vec4(float(numActiveMasks));
+		else 
+			blendColor = vec4(1.0);
 	}
 
 	vec4 dataColor = clamp(data*blendColor, 0.0, 1.0);

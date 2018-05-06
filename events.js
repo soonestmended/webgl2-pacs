@@ -119,8 +119,14 @@ function handleMouseMove(event) {
         for (let view of views) {
           view.updateCrosshairPosition(center);
         }
-        console.log("Center: " + center + " " + study.masks[1].contains(center));// + " " + study.masks[1].contains(center));
-
+        //console.log("Center: " + center);// + " " + study.masks[1].contains(center));
+        let mvp = study.transformWorldToMask(center);
+        //console.log("Mask voxel position: " + mvp);
+        let md = new Uint32Array(1);
+        md[0] = study.maskTexData[mvp[2]*study.maskVoxelDim[0]*study.maskVoxelDim[1] + mvp[1]*study.maskVoxelDim[1] + mvp[0]];
+        console.log("Mask data: " + md[0]);
+        console.log("Selected masks: " + study.activeMasks[0]);
+        console.log("Mask data & selected masks: " + (md[0] & study.activeMasks[0]));
       }
 
       else if (mode == MODE_ROTATE) {
@@ -162,7 +168,7 @@ function handleMouseDown(event) {
   event = event || window.event; // IE-ism
   activeView = getActiveView(event2canvas(event));
   mouseInfo.buttonDown[event.button] = true;
-  console.log("Button " + event.button + " pressed.");
+  //console.log("Button " + event.button + " pressed.");
   if (event.button == 2) {
     activeView.showMask = !activeView.showMask;
   }
@@ -216,12 +222,16 @@ function showMask(id) {
     m.show = false;
     study.activeMasks[0] &= ~(1 << id);
     maskLI.style.background = "";
+    //study.numActiveMasks--;
   }
   else {
     m.show = true;
     study.activeMasks[0] |= (1 << id);
     maskLI.style.backgroundColor = toCSSColor(m.color);
+    //study.numActiveMasks++;
   }
+  console.log("study.activeMasks[0] = " + study.activeMasks[0]);
+
   let activeMasks = [];
   for (let msk of study.masks) {
     if (msk.show) activeMasks.push(msk);

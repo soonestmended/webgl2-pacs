@@ -83,9 +83,9 @@ function launch() {
   study = new Study(argmap);
 
   var maskHeaderImagePair = readNifti(maskNiftiData);
-  study.addMaskFromNifti(maskHeaderImagePair[0], maskHeaderImagePair[1], [.5, 0.0, 0.0, .35]);
-  study.addDummyMaskSphere(.25, [0.0, .5, 0.0, .35]);
-  study.addDummyMaskBox([-.5, -.5, -.5], [.5, .5, .5], [0, .5, 0.5, .35]);
+  study.addMaskFromNifti(maskHeaderImagePair[0], maskHeaderImagePair[1], [1, 0, 0, 1], "Tumor");
+  study.addDummyMaskSphere(.25, [0, 1, 0, 1], "Sphere dummy");
+  study.addDummyMaskBox([-.15, -.85, -.5], [.15, .85, .5], [1, 0, 1, 1], "Box dummy");
 
   texturesArray = study.to3DTextures();
   maskTexturesArray = study.masksTo3DTextures();
@@ -182,6 +182,9 @@ var drawArrays_crosshair_Y = {
   position: [0, -1, 0, 0, 1, 0],
 } 
 
+var blendColors = twgl.primitives.createAugmentedTypedArray(4, 32); 
+//blendColors.push([1, 0, 0, 1], [0, 1, 0, 1], [0, 0, 1, 1], [1, 1, 0, 1], [1, 0, 0, 1], [0, 1, 0, 1], [0, 0, 1, 1], [1, 1, 0, 1]);
+
 var drawBufferInfo = twgl.createBufferInfoFromArrays(gl, drawArrays);
 var drawBufferInfo_crosshair_X = twgl.createBufferInfoFromArrays(gl, drawArrays_crosshair_X);
 var drawBufferInfo_crosshair_Y = twgl.createBufferInfoFromArrays(gl, drawArrays_crosshair_Y);
@@ -206,6 +209,17 @@ var noMaskTexture = twgl.createTexture(gl, {
   src: [0],
 });
 */
+
+function updateMaskColors() {
+  blendColors = twgl.primitives.createAugmentedTypedArray(4, 32);
+  for (let i = 0; i < 32; ++i) {
+    if (i < study.numMasks)
+      blendColors.push(study.masks[i].color);
+    else
+      blendColors.push([1, 1, 1, 1]);
+  }
+
+}
 
 function render(time) {
   time *= 0.0001;
@@ -233,7 +247,7 @@ function render(time) {
   //gl.blendFunc(gl.ONE, gl.ZERO);
   //gl.blendEquationSeparate(gl.FUNC_ADD, gl.MIN);
 
-   
+
   // Draw views
   for (let view of views) {
     gl.viewport(view.x, view.y, view.width, view.height);
@@ -248,6 +262,7 @@ function render(time) {
     drawUniforms.u_maskVoxelDim = study.maskVoxelDim;
     drawUniforms.u_maskWorld2voxel = study.maskWorld2voxel;
     drawUniforms.u_activeMasks = study.activeMasks[0];
+    drawUniforms.u_numMasks = study.numMasks;
 
     drawUniforms.u_viewportInfo = [view.x, view.y, view.width, view.height];
     drawUniforms.u_voxelDim = view.voxelDim;
@@ -257,7 +272,7 @@ function render(time) {
     drawUniforms.u_normal = view.currentNormal;
     drawUniforms.u_U = view.currentU;
     drawUniforms.u_V = view.currentV;
-    drawUniforms.u_color = [1, 1, 1, 1];
+    drawUniforms.u_colors = blendColors;
     //drawUniforms.u_d = view.d;
     drawUniforms.u_scale = view.currentScale;
     //drawUniforms.u_correctionXform = view.correctionXform;

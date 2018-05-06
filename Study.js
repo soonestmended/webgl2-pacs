@@ -34,6 +34,11 @@ class BBox {
   dim() {
     return [this.urc[0] - this.llc[0], this.urc[1] - this.llc[1], this.urc[2] - this.llc[2]];
   }
+
+  center() {
+    let dim = this.dim();
+    return [this.llc[0] + dim[0]/2, this.llc[1] + dim[1]/2, this.llc[2] + dim[2]/2];
+  }
 }
 
 class Series {
@@ -102,6 +107,14 @@ class Study {
     this.activeMasks = new Uint32Array(1);
     this.activeMasks[0] = 0;
     this.maskOverlapCache = new Map();
+  }
+
+  transformWorldToMask(p) {
+    let mvp = m4.transformPoint(study.maskWorld2voxel, p);
+    mvp[0] = Math.round(mvp[0]-.5);
+    mvp[1] = Math.round(mvp[1]-.5);
+    mvp[2] = Math.round(mvp[2]-.5);
+    return mvp;
   }
 
   maskVoxelVolumeInCC() {
@@ -200,7 +213,7 @@ class Study {
 
 
 
-  addDummyMask(condition, c) {
+  addDummyMask(condition, c, name) {
     let w, h, d, idx;
     //let box = new BBox(llc, urc);
     w = h = d = 256;
@@ -228,17 +241,18 @@ class Study {
 
     // now push mask with those characteristics
     
-    this.masks.push(new Mask({id: this.numMasks, units: "mm", color: c, width: w, height: h, depth: d, name: "dummy mask", imgData: maskData, voxelWidth: bboxDim[0]/w, voxelHeight: bboxDim[1]/h, voxelDepth: bboxDim[2]/d, voxel2world: v2w}));
+    this.masks.push(new Mask({id: this.numMasks, units: "mm", color: c, width: w, height: h, depth: d, name: name, imgData: maskData, voxelWidth: bboxDim[0]/w, voxelHeight: bboxDim[1]/h, voxelDepth: bboxDim[2]/d, voxel2world: v2w}));
     this.numMasks++;
+    updateMaskColors();
   }
 
-  addDummyMaskBox(llc, urc, c) {
+  addDummyMaskBox(llc, urc, c, name) {
     let box = new BBox(llc, urc);
-    this.addDummyMask(function(point) {return box.contains(point);}, c);
+    this.addDummyMask(function(point) {return box.contains(point);}, c, name);
   }
 
-  addDummyMaskSphere(radius, c) {
-    this.addDummyMask(function(point) {return point[0]*point[0]+point[1]*point[1]+point[2]*point[2] < radius;}, c);
+  addDummyMaskSphere(radius, c, name) {
+    this.addDummyMask(function(point) {return point[0]*point[0]+point[1]*point[1]+point[2]*point[2] < radius;}, c, name);
   }
 
   scaleUnitMaskToBBox(maskDim, bboxDim) {
@@ -257,7 +271,7 @@ class Study {
     return m4.inverse(w2v);
   }
 
-  addMaskFromNifti(maskHeader, maskData, c) {
+  addMaskFromNifti(maskHeader, maskData, c, name) {
     // mask is an array of images with matching depth
 //    if (seriesIndex >= this.series.length) {
 //      console.log("Adding mask failed -- series " + seriesIndex + " doesn't exist.");
@@ -311,8 +325,9 @@ class Study {
     let unitsString = maskHeader.getUnitsCodeString(maskHeader.xyzt_units & 7);
     if (unitsString == "millimeters") unitsString = "mm";
 
-    this.masks.push(new Mask({id: this.numMasks, units: unitsString, color: c, width: w, height: h, depth: d, name: maskHeader.description, imgData: imageDataAsFloats, voxelWidth: vWidth, voxelHeight: vHeight, voxelDepth: vDepth, voxel2world: xform}));
+    this.masks.push(new Mask({id: this.numMasks, units: unitsString, color: c, width: w, height: h, depth: d, name: name, imgData: imageDataAsFloats, voxelWidth: vWidth, voxelHeight: vHeight, voxelDepth: vDepth, voxel2world: xform}));
     this.numMasks++;
+    updateMaskColors();
   }
 
   masksToOne3DTexture() {
@@ -320,33 +335,53 @@ class Study {
     let x, y, z;
     let llc = this.bbox.llc;
     let bbd = this.bbox.dim();
-    w = h = d = 256;
+    let ctr = this.bbox.center();
+    w = h = 256;
+    d = 50;
     this.maskVoxelDim = [w, h, d];
     let w2v = m4.scaling([w/bbd[0], h/bbd[1], d/bbd[2]]);
-    this.maskWorld2voxel = m4.multiply(m4.translation([w/2, h/2, d/2]), w2v);
-    
+    this.maskWorld2voxel = m4.multiply(w2v, m4.translation([-llc[0], -llc[1], -llc[2]]));
+    //this.maskWorld2voxel = this.series[0].world2voxel;
     this.maskTexData = new Uint32Array(w*h*d);
 
     this.maskVoxelWidth = bbd[0] / w;
     this.maskVoxelHeight = bbd[1] / h;
     this.maskVoxelDepth = bbd[2] / d;
 
-    for (let k = 0; k < d; ++k) {
-      z = llc[2] + (k*bbd[2]/d);
-      for (let j = 0; j < h; ++j) {
-        y = llc[1] + (j*bbd[1]/h);
-        for (let i = 0; i < w; ++i) {
-          x = llc[0] + (i*bbd[0]/w);
-          let idx = k*w*h+j*w+i;
-          this.maskTexData[idx] = 0;
-          for (let midx = 0; midx < this.masks.length; ++midx) {
-            let m = this.masks[midx];
-            if (m.contains([x, y, z]))
+    let start = new Date();
+
+    for (let midx = 0; midx < this.masks.length; ++midx) {
+
+      let m = this.masks[midx];
+      // nudge lower left corner by half a voxel width/height/depth so that it maps to the middle of a voxel
+      let nllc = [llc[0] + this.maskVoxelWidth/2, llc[1] + this.maskVoxelHeight/2, llc[2] + this.maskVoxelDepth/2];
+
+      // transform llc to voxel space
+      let llcInMaskVoxelSpace = m4.transformPoint(m.world2voxel, nllc);
+
+      // 3D step in world space to correspond to one voxel step in voxel space
+
+      let delta = m4.transformDirection(m.world2voxel, [bbd[0]/w, bbd[1]/h, bbd[2]/d]);
+      
+      for (let k = 0; k < d; ++k) {
+        z = Math.floor(llcInMaskVoxelSpace[2] + (k*delta[2]));
+        for (let j = 0; j < h; ++j) {
+          y = Math.floor(llcInMaskVoxelSpace[1] + (j*delta[1]));
+          for (let i = 0; i < w; ++i) {
+            x = Math.floor(llcInMaskVoxelSpace[0] + (i*delta[0]));
+            let idx = k*w*h+j*w+i;
+            let mcidx = z*m.width*m.height+y*m.width+x;
+            if (m.imgData[mcidx] > 0) 
               this.maskTexData[idx] |= (1 << midx);
+            
           }
         }
       }
     }
+    
+    let end = new Date();
+    console.log("Mask to 3D texture time: " + (end - start) / 1000);
+
     return twgl.createTexture(gl, {
         target: gl.TEXTURE_3D,
         minMag: gl.NEAREST,
@@ -555,11 +590,16 @@ class Study {
       // VOLUME STUFF ABOVE IS SCREWED UP
       let voxelsInAnyMask = 0;
       let voxelsInSelectedMasks = 0;
+      let data = new Uint32Array(1);
+      let overlapBits = new Uint32Array(1);
       for (let idx = 0; idx < this.maskVoxelDim[0]*this.maskVoxelDim[1]*this.maskVoxelDim[2]; ++idx) {
-        let data = this.maskTexData[idx];
-        if (data > 0) {
+        
+        data[0] = this.maskTexData[idx]; // bits showing which masks this voxel belongs to
+        
+        overlapBits[0] = data[0] & selectedMasksBitfield[0];
+        if (overlapBits[0] > 0) { // if voxel is in at least one of the selected masks
           voxelsInAnyMask++;
-          if (data == selectedMasksBitfield[0])
+          if (overlapBits[0] == selectedMasksBitfield[0]) // if voxel is in every one of the selected masks
             voxelsInSelectedMasks++;
         }
       }
